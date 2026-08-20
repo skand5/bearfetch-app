@@ -1,0 +1,5 @@
+#include "Release.xcconfig"
+#include? "Signing.local.xcconfig"
+PRODUCT_BUNDLE_IDENTIFIER = com.bearfetch.app
+TEST_PRODUCT_BUNDLE_IDENTIFIER = com.bearfetch.app.RunnerTests
+APP_DISPLAY_NAME = BearFetch

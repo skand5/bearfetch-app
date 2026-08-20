@@ -1,17 +1,22 @@
-# bearfetch_app
+# BearFetch
 
-A new Flutter project.
+Offline-first Flutter learning app for children. Course content and chatbot-building activities are scripted assets; application contains no AI/chatbot runtime.
 
-## Getting Started
+## Toolchain
 
-This project is a starting point for a Flutter application.
+- Flutter `3.41.4` / Dart `3.11.1`
+- Java `17`
+- Android compile SDK `37`
+- Full Xcode installation for iOS builds
 
-A few resources to get you started if this is your first Flutter project:
+## Local run
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```bash
+cp config/development.example.json config/development.json
+flutter pub get
+flutter run --flavor development --dart-define-from-file=config/development.json
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Development build may run without backend credentials until Supabase integration lands. Production builds fail at startup unless every required public value is supplied.
+
+See [docs/SETUP.md](docs/SETUP.md) for signing, environment, CI, Supabase, Resend, and Sentry setup.

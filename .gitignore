@@ -69,6 +69,7 @@ android/app/*.keystore
 *.p12
 *.mobileprovision
 ios/ExportOptions.local.plist
+ios/Flutter/Signing.local.xcconfig
 
 # Service CLI credentials and generated state
 .supabase/
@@ -81,3 +82,7 @@ ios/sentry.properties
 secrets/
 *.secret
 *.secrets
+
+# Real dart-define files (commit only *.example.json templates)
+config/development.json
+config/production.json

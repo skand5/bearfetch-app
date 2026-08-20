@@ -1,4 +1,4 @@
-package com.bearfetch.bearfetch_app
+package com.bearfetch.app
 
 import io.flutter.embedding.android.FlutterActivity
 

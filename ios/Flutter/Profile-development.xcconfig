@@ -1,0 +1,4 @@
+#include "Release.xcconfig"
+PRODUCT_BUNDLE_IDENTIFIER = com.bearfetch.app.dev
+TEST_PRODUCT_BUNDLE_IDENTIFIER = com.bearfetch.app.dev.RunnerTests
+APP_DISPLAY_NAME = BearFetch Dev
