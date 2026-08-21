@@ -1,14 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bearfetch_app/features/course/presentation/course_activity_screen.dart';
 import 'package:bearfetch_app/features/course/presentation/activity_result_screen.dart';
 import 'package:bearfetch_app/features/course/presentation/course_completion_screen.dart';
 import 'package:bearfetch_app/main.dart';
+import 'support/test_harness.dart';
 
 void main() {
+  late TestHarness harness;
+
+  setUp(() async {
+    harness = await TestHarness.create();
+  });
+
+  tearDown(() => harness.dispose());
+
   testWidgets('parent-first onboarding is the app entry point', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: BearfetchApp()));
+    await tester.pumpWidget(harness.wrap(const BearfetchApp()));
     expect(find.bySemanticsLabel("I'm a Parent"), findsOneWidget);
     expect(find.bySemanticsLabel('Sign in'), findsOneWidget);
   });
@@ -16,7 +24,7 @@ void main() {
   testWidgets('parent signup validates details then opens learner profile', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: BearfetchApp()));
+    await tester.pumpWidget(harness.wrap(const BearfetchApp()));
 
     final parentButton = find.bySemanticsLabel("I'm a Parent");
     await tester.ensureVisible(parentButton);
@@ -78,7 +86,7 @@ void main() {
   testWidgets('native shell tabs and first activity route work', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: BearfetchApp()));
+    await tester.pumpWidget(harness.wrap(const BearfetchApp()));
 
     final signIn = find.bySemanticsLabel('Sign in');
     await tester.ensureVisible(signIn);
@@ -123,10 +131,10 @@ void main() {
   testWidgets('all course activity definitions render natively', (
     tester,
   ) async {
-    for (final entry in activityDefinitions.entries) {
+    for (final entry in harness.catalog.byId.entries) {
       await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(home: CourseActivityScreen(activityId: entry.key)),
+        harness.wrap(
+          MaterialApp(home: CourseActivityScreen(activityId: entry.key)),
         ),
       );
       await tester.pump();
@@ -163,8 +171,8 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(
+      harness.wrap(
+        const MaterialApp(
           home: ActivityResultScreen(activityId: 'unit-04-07', correct: true),
         ),
       ),
@@ -179,8 +187,8 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(
+      harness.wrap(
+        const MaterialApp(
           home: ActivityResultScreen(activityId: 'unit-04-07', correct: false),
         ),
       ),
@@ -196,7 +204,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const ProviderScope(child: MaterialApp(home: CourseCompletionScreen())),
+      harness.wrap(const MaterialApp(home: CourseCompletionScreen())),
     );
     await tester.pump();
 

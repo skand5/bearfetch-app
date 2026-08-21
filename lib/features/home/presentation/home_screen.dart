@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/state/prototype_state.dart';
+import '../../../core/state/app_state.dart';
 
 abstract final class _HomeColors {
   static const canvas = Color(0xFFFDF6EC);
@@ -23,7 +23,7 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(prototypeStateProvider);
+    final state = ref.watch(appViewStateProvider);
     return MediaQuery.withNoTextScaling(
       child: ColoredBox(
         color: _HomeColors.canvas,
@@ -57,8 +57,7 @@ class HomeScreen extends ConsumerWidget {
                               started: state.courseStarted,
                               step: state.completedSteps,
                               onPressed: () {
-                                state.startCourse();
-                                context.go('/activity/unit-01-01');
+                                context.go(state.nextCourseRoute);
                               },
                             ),
                             SizedBox(height: 32 * scale),

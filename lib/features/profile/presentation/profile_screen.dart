@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/state/prototype_state.dart';
-import '../../courses/presentation/courses_screen.dart';
+import '../../../core/state/app_state.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -14,13 +13,10 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(prototypeStateProvider);
+    final state = ref.watch(appViewStateProvider);
 
     void continueLearning() {
-      state.startCourse();
-      context.go(
-        '/activity/${activityIdForStep(state.completedSteps.clamp(1, 34))}',
-      );
+      context.go(state.nextCourseRoute);
     }
 
     void showLocalMessage(String message) {

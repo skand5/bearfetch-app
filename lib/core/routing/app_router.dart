@@ -12,6 +12,7 @@ import '../../features/onboarding/presentation/parent_account_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/shell/presentation/app_shell.dart';
 import '../../features/shop/presentation/shop_screen.dart';
+import '../../domain/content/course_catalog.dart';
 
 const _initialRoute = String.fromEnvironment(
   'BEARFETCH_INITIAL_ROUTE',
@@ -85,7 +86,7 @@ final appRouterProvider = Provider<GoRouter>(
         path: '/screen/:screenId',
         redirect: (context, state) {
           final id = state.pathParameters['screenId']!;
-          return activityDefinitions.containsKey(id)
+          return ref.read(courseCatalogProvider).byId.containsKey(id)
               ? '/activity/$id'
               : '/home';
         },

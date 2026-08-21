@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/state/prototype_state.dart';
+import '../../../core/state/app_state.dart';
 
 class CourseCompletionScreen extends ConsumerWidget {
   const CourseCompletionScreen({super.key});
@@ -77,11 +77,11 @@ class CourseCompletionScreen extends ConsumerWidget {
                               top: 1490,
                               width: 354,
                               height: 60,
-                              onTap: () {
-                                ref
-                                    .read(prototypeStateProvider)
-                                    .completeActivity(36);
-                                context.go('/home');
+                              onTap: () async {
+                                await ref
+                                    .read(appStateControllerProvider.notifier)
+                                    .completeCourse();
+                                if (context.mounted) context.go('/home');
                               },
                             ),
                           ],

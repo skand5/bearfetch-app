@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/state/prototype_state.dart';
+import '../../../core/state/app_state.dart';
 import '../../../core/theme/bearfetch_theme.dart';
 
 class LearnerProfileScreen extends ConsumerStatefulWidget {
@@ -36,7 +36,7 @@ class _LearnerProfileScreenState extends ConsumerState<LearnerProfileScreen> {
     super.dispose();
   }
 
-  void _continue() {
+  Future<void> _continue() async {
     if (_nickname.text.trim().length < 2) {
       _showMessage('Enter a nickname.');
       return;
@@ -45,14 +45,14 @@ class _LearnerProfileScreenState extends ConsumerState<LearnerProfileScreen> {
       _showMessage('Choose an age range.');
       return;
     }
-    ref
-        .read(prototypeStateProvider)
+    await ref
+        .read(appStateControllerProvider.notifier)
         .saveLearner(
           nickname: _nickname.text.trim(),
           age: _age!,
           preferredLanguage: _language,
         );
-    context.go('/signup/approval');
+    if (mounted) context.go('/signup/approval');
   }
 
   void _showMessage(String message) {
@@ -416,7 +416,7 @@ class _ParentApprovalScreenState extends ConsumerState<ParentApprovalScreen> {
         : _confirmed.add(index);
   });
 
-  void _approve() {
+  Future<void> _approve() async {
     if (_confirmed.length != 3) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -425,8 +425,8 @@ class _ParentApprovalScreenState extends ConsumerState<ParentApprovalScreen> {
         );
       return;
     }
-    ref.read(prototypeStateProvider).approveParent();
-    context.go('/home');
+    await ref.read(appStateControllerProvider.notifier).approveParent();
+    if (mounted) context.go('/home');
   }
 
   @override

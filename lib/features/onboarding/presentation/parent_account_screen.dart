@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/state/app_state.dart';
 import '../../../core/theme/bearfetch_theme.dart';
 
-class ParentAccountScreen extends StatefulWidget {
+class ParentAccountScreen extends ConsumerStatefulWidget {
   const ParentAccountScreen({super.key});
 
   @override
-  State<ParentAccountScreen> createState() => _ParentAccountScreenState();
+  ConsumerState<ParentAccountScreen> createState() =>
+      _ParentAccountScreenState();
 }
 
-class _ParentAccountScreenState extends State<ParentAccountScreen> {
+class _ParentAccountScreenState extends ConsumerState<ParentAccountScreen> {
   final _nameController = TextEditingController();
   final _contactController = TextEditingController();
 
@@ -35,7 +38,7 @@ class _ParentAccountScreenState extends State<ParentAccountScreen> {
     super.dispose();
   }
 
-  void _sendOtp() {
+  Future<void> _sendOtp() async {
     final name = _nameController.text.trim();
     final contact = _contactController.text.trim();
     final isEmail = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(contact);
@@ -49,7 +52,8 @@ class _ParentAccountScreenState extends State<ParentAccountScreen> {
       _showValidationMessage('Enter a valid email or mobile number.');
       return;
     }
-    context.go('/signup/verify');
+    await ref.read(appStateControllerProvider.notifier).setParentName(name);
+    if (mounted) context.go('/signup/verify');
   }
 
   void _showValidationMessage(String message) {

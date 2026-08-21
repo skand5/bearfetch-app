@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/state/prototype_state.dart';
+import '../../../core/state/app_state.dart';
 import '../../../core/theme/bearfetch_theme.dart';
+import '../../../domain/repositories/app_repositories.dart';
 
 class ShopScreen extends ConsumerStatefulWidget {
   const ShopScreen({super.key});
@@ -29,12 +30,14 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
       );
   }
 
-  void _buyOrEquipStarCap(PrototypeState state) {
+  Future<void> _buyOrEquipStarCap(AppViewState state) async {
+    final controller = ref.read(appStateControllerProvider.notifier);
     if (state.ownedAccessories.contains('Star Cap')) {
-      state.equip('Star Cap');
+      await controller.equip('Star Cap');
       return;
     }
-    if (!state.buy('Star Cap', 25)) {
+    final result = await controller.buy('Star Cap', 25);
+    if (result == PurchaseResult.insufficientHoney && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You need more honey jars.')),
       );
@@ -43,7 +46,8 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(prototypeStateProvider);
+    final state = ref.watch(appViewStateProvider);
+    final controller = ref.read(appStateControllerProvider.notifier);
     return ColoredBox(
       color: const Color(0xFFFBF9F1),
       child: LayoutBuilder(
@@ -147,7 +151,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                               ? 'Moon Glasses equipped'
                               : 'Equip Moon Glasses',
                           enabled: state.equippedAccessory != 'Moon Glasses',
-                          onTap: () => state.equip('Moon Glasses'),
+                          onTap: () => controller.equip('Moon Glasses'),
                         ),
                       ),
                       Positioned(
@@ -160,7 +164,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                               ? 'Rocket Pack equipped'
                               : 'Equip Rocket Pack',
                           enabled: state.equippedAccessory != 'Rocket Pack',
-                          onTap: () => state.equip('Rocket Pack'),
+                          onTap: () => controller.equip('Rocket Pack'),
                         ),
                       ),
                       Positioned(

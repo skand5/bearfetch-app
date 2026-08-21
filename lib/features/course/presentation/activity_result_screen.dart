@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/state/prototype_state.dart';
-import 'course_activity_screen.dart';
+import '../../../core/state/app_state.dart';
+import '../../../domain/content/course_catalog.dart';
 
 class ActivityResultScreen extends ConsumerWidget {
   const ActivityResultScreen({
@@ -18,18 +18,22 @@ class ActivityResultScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final activity = activityDefinitions[activityId]!;
+    final activity = ref.watch(courseCatalogProvider).activity(activityId);
     if (!correct) return _RetryResult(activity: activity);
 
     final copy = _activityResultCopy[activityId]!;
     return _CorrectResult(
       activity: activity,
       copy: copy,
-      learnerName: ref.watch(prototypeStateProvider).learnerName,
-      onContinue: () {
-        ref.read(prototypeStateProvider).completeActivity(activity.step);
+      learnerName: ref.watch(appViewStateProvider).learnerName,
+      onContinue: () async {
+        await ref
+            .read(appStateControllerProvider.notifier)
+            .completeActivity(activity);
         final next = activity.nextId;
-        context.go(next == null ? '/course-completion' : '/activity/$next');
+        if (context.mounted) {
+          context.go(next == null ? '/course-completion' : '/activity/$next');
+        }
       },
     );
   }
@@ -456,9 +460,7 @@ class _RetryResult extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final learnerName = ref.watch(
-      prototypeStateProvider.select((state) => state.learnerName),
-    );
+    final learnerName = ref.watch(appViewStateProvider).learnerName;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFFBF2),
@@ -538,8 +540,14 @@ class _RetryResult extends ConsumerWidget {
                               top: 732,
                               width: 355,
                               height: 62,
-                              onTap: () =>
-                                  context.go('/activity/${activity.id}'),
+                              onTap: () async {
+                                await ref
+                                    .read(appStateControllerProvider.notifier)
+                                    .recordRetry(activity.id);
+                                if (context.mounted) {
+                                  context.go('/activity/${activity.id}');
+                                }
+                              },
                             ),
                           ],
                         ),

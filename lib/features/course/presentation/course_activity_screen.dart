@@ -4,336 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/bearfetch_theme.dart';
 import '../../../core/widgets/bearfetch_ui.dart';
-
-enum ActivityKind { lesson, select, multiSelect, sequence }
-
-class ActivityDefinition {
-  const ActivityDefinition({
-    required this.id,
-    required this.unit,
-    required this.step,
-    required this.badge,
-    required this.title,
-    required this.subtitle,
-    required this.body,
-    required this.kind,
-    this.options = const [],
-    this.correct = const {},
-    this.nextId,
-  });
-  final String id;
-  final int unit;
-  final int step;
-  final String badge;
-  final String title;
-  final String subtitle;
-  final String body;
-  final ActivityKind kind;
-  final List<String> options;
-  final Set<int> correct;
-  final String? nextId;
-}
-
-const activityDefinitions = <String, ActivityDefinition>{
-  'unit-01-01': ActivityDefinition(
-    id: 'unit-01-01',
-    unit: 1,
-    step: 1,
-    badge: 'UNIT 1: WHAT IS AN AI CHATBOT?',
-    title: 'Meet AI Chatbots',
-    subtitle: 'Today we’ll learn about AI chatbots.',
-    body:
-        'A chatbot is an AI helper that talks with people using words. Chatbots can answer questions, suggest ideas, and help you inside apps or websites.\n\nYou may have seen chatbots in games, shopping, search, and support.',
-    kind: ActivityKind.lesson,
-    nextId: 'unit-01-02',
-  ),
-  'unit-01-02': ActivityDefinition(
-    id: 'unit-01-02',
-    unit: 1,
-    step: 2,
-    badge: 'AI APPS',
-    title: 'Do you know these AI apps?',
-    subtitle: 'Tap the AI companies or AI-powered apps.',
-    body: 'Choose every example that uses modern AI.',
-    kind: ActivityKind.multiSelect,
-    options: [
-      'OpenAI',
-      'YouTube',
-      'Spotify',
-      'Xbox',
-      'Claude',
-      'PlayStation',
-      'Starbucks',
-      'Domino’s',
-      'Gemini',
-    ],
-    correct: {0, 4, 8},
-    nextId: 'unit-01-03',
-  ),
-  'unit-01-03': ActivityDefinition(
-    id: 'unit-01-03',
-    unit: 1,
-    step: 4,
-    badge: 'WORD BANK',
-    title: 'Place the right words',
-    subtitle: 'Complete the explanation using the word bank.',
-    body:
-        'An LLM is a type of artificial intelligence designed to understand and generate _____. It reads massive amounts of _____ and can _____.',
-    kind: ActivityKind.multiSelect,
-    options: [
-      'Human language',
-      'Text',
-      'Answer questions',
-      'Numbers only',
-      'Pictures only',
-    ],
-    correct: {0, 1, 2},
-    nextId: 'unit-01-04',
-  ),
-  'unit-01-04': ActivityDefinition(
-    id: 'unit-01-04',
-    unit: 1,
-    step: 6,
-    badge: 'INPUT → OUTPUT',
-    title: 'Ask the chatbot a question',
-    subtitle: 'Choose a question and watch how the bot replies.',
-    body:
-        'Hi! I’m BearFetch Bot. Ask me a question, and I’ll reply with an answer.',
-    kind: ActivityKind.select,
-    options: [
-      'What is an AI chatbot?',
-      'Where do chatbots appear?',
-      'What can a chatbot do?',
-    ],
-    correct: {0},
-    nextId: 'unit-02-01',
-  ),
-  'unit-02-01': ActivityDefinition(
-    id: 'unit-02-01',
-    unit: 2,
-    step: 8,
-    badge: 'TOKENS',
-    title: 'Word Puzzle Blocks',
-    subtitle: 'Put the word pieces in the correct order.',
-    body:
-        'Words can be split into smaller parts called tokens. Build the sentence below.',
-    kind: ActivityKind.sequence,
-    options: ['AI chatbots', 'answer', 'questions', 'using', 'words'],
-    correct: {0, 1, 2, 3, 4},
-    nextId: 'unit-02-02',
-  ),
-  'unit-02-02': ActivityDefinition(
-    id: 'unit-02-02',
-    unit: 2,
-    step: 10,
-    badge: 'PREDICTION',
-    title: 'Guess the Next Word',
-    subtitle: 'What is the most likely next word?',
-    body: 'The bear eats sweet _____.',
-    kind: ActivityKind.multiSelect,
-    options: [
-      'honey',
-      'rocket',
-      'window',
-      'answer',
-      'banana',
-      'planet',
-      'sky',
-      'shoe',
-      'sandwich',
-    ],
-    correct: {0, 3, 6},
-    nextId: 'unit-02-03',
-  ),
-  'unit-02-03': ActivityDefinition(
-    id: 'unit-02-03',
-    unit: 2,
-    step: 12,
-    badge: 'MEMORY',
-    title: 'Which reply remembers?',
-    subtitle: 'Memory helps a chatbot use earlier messages.',
-    body:
-        'User: My favorite planet is Mars.\nBot: Got it. Your favorite planet is Mars.\nUser: Tell me more about my favorite planet.',
-    kind: ActivityKind.select,
-    options: [
-      'Mars is called the Red Planet. It has dusty red soil, tall volcanoes, and two small moons.',
-      'Which planet do you mean? Please tell me the planet name first.',
-    ],
-    correct: {0},
-    nextId: 'unit-03-01',
-  ),
-  'unit-03-01': ActivityDefinition(
-    id: 'unit-03-01',
-    unit: 3,
-    step: 15,
-    badge: 'PROMPTING',
-    title: 'Talk to AI Properly',
-    subtitle: 'See how changing the prompt changes the answer.',
-    body:
-        'Better prompt: “Tell me 3 fun facts about Mars for kids in short sentences.”\n\nThe answer gives clear, short, kid-friendly facts.',
-    kind: ActivityKind.multiSelect,
-    options: [
-      'It gave a clear topic',
-      'It asked for short sentences',
-      'It asked for a kid-friendly answer',
-    ],
-    correct: {0, 1, 2},
-    nextId: 'unit-03-02',
-  ),
-  'unit-03-02': ActivityDefinition(
-    id: 'unit-03-02',
-    unit: 3,
-    step: 17,
-    badge: 'BEHAVIOR',
-    title: 'Make AI Funny or Serious',
-    subtitle: 'Choose a style and see how the answer changes.',
-    body:
-        'Prompt: “Explain what a black hole is.”\n\nA black hole is like a cosmic vacuum cleaner with a huge appetite. Even light cannot escape its pull.',
-    kind: ActivityKind.select,
-    options: ['Funny', 'Serious', 'Friendly'],
-    correct: {0},
-    nextId: 'unit-03-03',
-  ),
-  'unit-03-03': ActivityDefinition(
-    id: 'unit-03-03',
-    unit: 3,
-    step: 19,
-    badge: 'LLM ROLE',
-    title: 'Chatbot Roles',
-    subtitle: 'How should an LLM respond to a person’s prompt?',
-    body:
-        'A chatbot should guide conversations, provide useful information, and help people complete tasks.',
-    kind: ActivityKind.select,
-    options: ['Be Rude', 'Be Complicated', 'Be Respectful'],
-    correct: {2},
-    nextId: 'unit-04-01',
-  ),
-  'unit-04-01': ActivityDefinition(
-    id: 'unit-04-01',
-    unit: 4,
-    step: 22,
-    badge: 'SYSTEM',
-    title: 'What is a Chatbot Made Of?',
-    subtitle: 'Place the parts in the correct order.',
-    body: 'A chatbot needs a screen, a brain, knowledge, and a reply.',
-    kind: ActivityKind.sequence,
-    options: [
-      'User Question',
-      'Chat Screen',
-      'AI Brain',
-      'Data / Knowledge',
-      'Bot Reply',
-    ],
-    correct: {0, 1, 2, 3, 4},
-    nextId: 'unit-04-02',
-  ),
-  'unit-04-02': ActivityDefinition(
-    id: 'unit-04-02',
-    unit: 4,
-    step: 24,
-    badge: 'UI LAYER',
-    title: 'Choose the best chatbot UI',
-    subtitle:
-        'A good chatbot screen shows messages clearly and gives users a simple place to type.',
-    body:
-        'Compare the two layouts and choose the one designed for conversations.',
-    kind: ActivityKind.select,
-    options: [
-      'Streaming Layout — best for videos',
-      'BearFetch Chat — clear messages and a reply field',
-    ],
-    correct: {1},
-    nextId: 'unit-04-03',
-  ),
-  'unit-04-03': ActivityDefinition(
-    id: 'unit-04-03',
-    unit: 4,
-    step: 24,
-    badge: 'CHAT FLOW',
-    title: 'Send a Message',
-    subtitle: 'Who’s doing what?',
-    body:
-        'User asks: “What is 5 × 5?”\nThe chatbot is generating…\nThe answer is 25!',
-    kind: ActivityKind.select,
-    options: [
-      'LLM Interface',
-      'AI Model',
-      'Response',
-      'LLM Interface',
-      'AI Model',
-      'Response',
-      'LLM Interface',
-      'AI Model',
-      'Response',
-    ],
-    correct: {0, 4, 8},
-    nextId: 'unit-04-04',
-  ),
-  'unit-04-04': ActivityDefinition(
-    id: 'unit-04-04',
-    unit: 4,
-    step: 28,
-    badge: 'CHATBOT BUILD',
-    title: 'First Working Bot',
-    subtitle: 'Does this look like a normal output?',
-    body:
-        'User: Who are you?\n\nBearFetch Bot: Hi, I am an AI chatbot. I can answer questions, explain ideas, and help you learn.',
-    kind: ActivityKind.select,
-    options: ['Yes', 'No'],
-    correct: {0},
-    nextId: 'unit-04-05',
-  ),
-  'unit-04-05': ActivityDefinition(
-    id: 'unit-04-05',
-    unit: 4,
-    step: 30,
-    badge: 'CUSTOMIZATION',
-    title: 'Choose Chatbot Type',
-    subtitle: 'What should your chatbot focus on?',
-    body: 'Pick the kind of chatbot you want to build.',
-    kind: ActivityKind.select,
-    options: [
-      'Math Bot — Learn & Solve',
-      'Fun Bot — Play & Explore',
-      'Study Coach — Guide & Grow',
-      'Helper Bot — Help & Support',
-    ],
-    correct: {2},
-    nextId: 'unit-04-06',
-  ),
-  'unit-04-06': ActivityDefinition(
-    id: 'unit-04-06',
-    unit: 4,
-    step: 32,
-    badge: 'TRAINING DATA',
-    title: 'Choose Training Examples',
-    subtitle: 'Pick the data that matches your chatbot’s purpose.',
-    body:
-        'Your chatbot: Study Coach Bot. It should help with study tips, reminders, and learning guidance.',
-    kind: ActivityKind.select,
-    options: [
-      'Math Practice Examples',
-      'Fun Facts Examples',
-      'Study Coach Examples — Best match',
-      'General Helper Examples',
-    ],
-    correct: {2},
-    nextId: 'unit-04-07',
-  ),
-  'unit-04-07': ActivityDefinition(
-    id: 'unit-04-07',
-    unit: 4,
-    step: 34,
-    badge: 'BOT TEST',
-    title: 'Test Your Bot',
-    subtitle: 'Did your chatbot answer well?',
-    body:
-        'Prompt: “How can I study for a science test?”\n\nResponse: Start with the hardest topics. Review one at a time, make short notes, and take a quick break after 20 minutes.',
-    kind: ActivityKind.select,
-    options: ['Yes, it helped', 'Not yet'],
-    correct: {0},
-  ),
-};
+import '../../../domain/content/course_catalog.dart' as content;
 
 class CourseActivityScreen extends ConsumerStatefulWidget {
   const CourseActivityScreen({super.key, required this.activityId});
@@ -347,7 +18,8 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
   final Set<int> selected = {};
   final List<int> sequence = [];
 
-  ActivityDefinition get activity => activityDefinitions[widget.activityId]!;
+  content.ActivityDefinition get activity =>
+      ref.read(content.courseCatalogProvider).activity(widget.activityId);
 
   @override
   void initState() {
@@ -415,9 +87,9 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
 
   void _toggle(int index) {
     setState(() {
-      if (activity.kind == ActivityKind.multiSelect) {
+      if (activity.kind == content.ActivityKind.multiSelect) {
         selected.contains(index) ? selected.remove(index) : selected.add(index);
-      } else if (activity.kind == ActivityKind.sequence) {
+      } else if (activity.kind == content.ActivityKind.sequence) {
         if (selected.remove(index)) {
           sequence.remove(index);
         } else {
@@ -433,7 +105,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
   }
 
   void _check() {
-    if (activity.kind == ActivityKind.lesson) {
+    if (activity.kind == content.ActivityKind.lesson) {
       context.go('/result/${activity.id}?correct=true');
       return;
     }
@@ -446,11 +118,11 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
     final setCorrect =
         selected.length == activity.correct.length &&
         selected.containsAll(activity.correct);
-    final expectedSequence = activity.id == 'unit-04-01'
-        ? const [1, 0, 2, 3, 4]
-        : List.generate(sequence.length, (index) => index);
+    final expectedSequence = activity.correctSequence.isEmpty
+        ? List.generate(sequence.length, (index) => index)
+        : activity.correctSequence;
     final orderCorrect =
-        activity.kind != ActivityKind.sequence ||
+        activity.kind != content.ActivityKind.sequence ||
         (sequence.length == expectedSequence.length &&
             List.generate(
               sequence.length,
@@ -2145,7 +1817,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                       ),
                     ),
                   ),
-                  if (a.kind == ActivityKind.sequence &&
+                  if (a.kind == content.ActivityKind.sequence &&
                       sequence.isNotEmpty) ...[
                     const SizedBox(height: 20),
                     const Text(
@@ -2182,7 +1854,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                         child: _AnswerOption(
                           label: a.options[index],
                           selected: selected.contains(index),
-                          number: a.kind == ActivityKind.sequence
+                          number: a.kind == content.ActivityKind.sequence
                               ? sequence.indexOf(index) + 1
                               : null,
                           onTap: () => _toggle(index),
@@ -2202,8 +1874,10 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                 border: Border(top: BorderSide(color: Color(0x225C3317))),
               ),
               child: BearfetchPrimaryButton(
-                label: a.kind == ActivityKind.lesson ? 'Start' : 'Check',
-                icon: a.kind == ActivityKind.lesson
+                label: a.kind == content.ActivityKind.lesson
+                    ? 'Start'
+                    : 'Check',
+                icon: a.kind == content.ActivityKind.lesson
                     ? Icons.play_arrow_rounded
                     : Icons.check_rounded,
                 onPressed: _check,
@@ -4274,7 +3948,7 @@ class _DashedRoundRectPainter extends CustomPainter {
 
 class _ActivityHeader extends StatelessWidget {
   const _ActivityHeader({required this.activity});
-  final ActivityDefinition activity;
+  final content.ActivityDefinition activity;
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
