@@ -36,7 +36,7 @@ jobs:
         with:
           flutter-version: 3.41.4
           channel: stable
-          cache: true
+          cache: false
 
       - name: Validate release secrets
         run: |
@@ -92,7 +92,7 @@ jobs:
         with:
           flutter-version: 3.41.4
           channel: stable
-          cache: true
+          cache: false
 
       - name: Validate release secrets
         run: |

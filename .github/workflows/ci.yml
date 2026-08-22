@@ -29,7 +29,9 @@ jobs:
         with:
           flutter-version: 3.41.4
           channel: stable
-          cache: true
+          # The persistent self-hosted runner retains Flutter tooling. Avoid
+          # GitHub's archive/cache post-step, which can stall on a large SDK.
+          cache: false
 
       - run: flutter pub get
       - run: dart format --output=none --set-exit-if-changed lib test
