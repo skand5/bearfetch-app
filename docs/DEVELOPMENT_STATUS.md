@@ -177,6 +177,19 @@ email delivery, and legal approval remain pending below.
 - The remote Supabase project was not linked, migrated, or mutated during this
   checkpoint.
 
+## Remote Supabase deployment — 2026-08-22
+
+- Local Supabase CLI is linked to the confirmed `BRFT-APP` project in West US
+  (North California).
+- The remote database initially had no applied migration history. Both reviewed
+  repository migrations are now applied:
+  `20260822033441_initial_server_schema.sql` and
+  `20260822060000_harden_privacy_sync_operations.sql`.
+- Linked migration history exactly matches the repository. Remote schema lint
+  completed with no errors.
+- No production user data, Supabase Auth configuration, SMTP configuration, or
+  Edge Function deployment was changed as part of this database deployment.
+
 ## Configured only — not yet production-activated
 
 - `config/development.json` contains user-supplied public runtime values and is
@@ -236,9 +249,8 @@ These items are intentionally postponed, not complete and not removed from scope
 
 ## External prerequisites and open release gates
 
-- Confirm the exact remote Supabase project, backup state, and deployment window
-  before linking or applying the locally verified migration.
-- Run hosted cross-parent/RPC smoke tests after the remote migration is applied.
+- Run hosted cross-parent/RPC smoke tests in a controlled non-production test
+  fixture before enabling parent sign-in for real users.
 - Resend sender/domain configuration is deferred and outstanding.
 - Sentry project credentials are configured publicly, but production-safe runtime integration remains outstanding.
 - Android upload keystore, secure backup, passwords, Play App Signing, and Play Console app setup are not yet confirmed complete.
