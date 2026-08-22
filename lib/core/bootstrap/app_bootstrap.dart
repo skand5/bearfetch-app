@@ -45,9 +45,7 @@ class BootstrapDependencies {
   final String? syncWarning;
 }
 
-final bootstrapDependenciesProvider = FutureProvider<BootstrapDependencies>((
-  ref,
-) async {
+Future<BootstrapDependencies> createBootstrapDependencies() async {
   late final CourseCatalog catalog;
   try {
     catalog = await CourseCatalog.loadFromAssets();
@@ -90,7 +88,40 @@ final bootstrapDependenciesProvider = FutureProvider<BootstrapDependencies>((
     await database.close();
     throw BootstrapFailure(BootstrapFailureKind.localMigration, error);
   }
-});
+}
+
+final bootstrapDependenciesProvider = FutureProvider<BootstrapDependencies>(
+  (ref) => createBootstrapDependencies(),
+);
+
+List<Override> bootstrapOverrides(BootstrapDependencies dependencies) => [
+  appDatabaseProvider.overrideWithValue(dependencies.database),
+  courseCatalogProvider.overrideWithValue(dependencies.catalog),
+  authRepositoryProvider.overrideWithValue(dependencies.authRepository),
+  parentRepositoryProvider.overrideWithValue(dependencies.parentRepository),
+  learnerRepositoryProvider.overrideWithValue(dependencies.learnerRepository),
+  consentRepositoryProvider.overrideWithValue(dependencies.consentRepository),
+  progressRepositoryProvider.overrideWithValue(dependencies.repository),
+  rewardsRepositoryProvider.overrideWithValue(dependencies.repository),
+  shopRepositoryProvider.overrideWithValue(dependencies.repository),
+  syncRepositoryProvider.overrideWithValue(
+    AppConfig.hasSupabaseConfiguration
+        ? SupabaseSyncRepository(
+            dependencies.repository,
+            Supabase.instance.client,
+            dependencies.authRepository,
+          )
+        : dependencies.repository,
+  ),
+  privacyRepositoryProvider.overrideWithValue(
+    AppConfig.hasSupabaseConfiguration
+        ? SupabasePrivacyRepository(
+            dependencies.repository,
+            Supabase.instance.client,
+          )
+        : dependencies.repository,
+  ),
+];
 
 class BearfetchBootstrapApp extends ConsumerWidget {
   const BearfetchBootstrapApp({super.key});
@@ -109,46 +140,7 @@ class BearfetchBootstrapApp extends ConsumerWidget {
           );
         }
         return ProviderScope(
-          overrides: [
-            appDatabaseProvider.overrideWithValue(dependencies.database),
-            courseCatalogProvider.overrideWithValue(dependencies.catalog),
-            authRepositoryProvider.overrideWithValue(
-              dependencies.authRepository,
-            ),
-            parentRepositoryProvider.overrideWithValue(
-              dependencies.parentRepository,
-            ),
-            learnerRepositoryProvider.overrideWithValue(
-              dependencies.learnerRepository,
-            ),
-            consentRepositoryProvider.overrideWithValue(
-              dependencies.consentRepository,
-            ),
-            progressRepositoryProvider.overrideWithValue(
-              dependencies.repository,
-            ),
-            rewardsRepositoryProvider.overrideWithValue(
-              dependencies.repository,
-            ),
-            shopRepositoryProvider.overrideWithValue(dependencies.repository),
-            syncRepositoryProvider.overrideWithValue(
-              AppConfig.hasSupabaseConfiguration
-                  ? SupabaseSyncRepository(
-                      dependencies.repository,
-                      Supabase.instance.client,
-                      dependencies.authRepository,
-                    )
-                  : dependencies.repository,
-            ),
-            privacyRepositoryProvider.overrideWithValue(
-              AppConfig.hasSupabaseConfiguration
-                  ? SupabasePrivacyRepository(
-                      dependencies.repository,
-                      Supabase.instance.client,
-                    )
-                  : dependencies.repository,
-            ),
-          ],
+          overrides: bootstrapOverrides(dependencies),
           child: BearfetchApp(syncWarning: dependencies.syncWarning),
         );
       },

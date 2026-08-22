@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'core/config/app_config.dart';
 import 'core/bootstrap/app_bootstrap.dart';
 import 'core/observability/sentry_observability.dart';
+import 'app.dart';
 
 export 'app.dart';
 
@@ -19,6 +20,12 @@ Future<void> main() async {
         publishableKey: AppConfig.supabaseAnonKey,
       );
     }
-    runApp(const ProviderScope(child: BearfetchBootstrapApp()));
+    final dependencies = await createBootstrapDependencies();
+    runApp(
+      ProviderScope(
+        overrides: bootstrapOverrides(dependencies),
+        child: BearfetchApp(syncWarning: dependencies.syncWarning),
+      ),
+    );
   });
 }
