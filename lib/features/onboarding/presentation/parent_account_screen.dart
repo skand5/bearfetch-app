@@ -80,7 +80,7 @@ class _ParentAccountScreenState extends ConsumerState<ParentAccountScreen> {
     if (widget.isSignIn) {
       return _ReturningParentAccountScreen(
         controller: _contactController,
-        onBack: () => context.pop(),
+        onBack: () => context.go('/onboarding'),
         onSendOtp: _sendOtp,
         onCreateAccount: () => context.go('/signup/account'),
       );
@@ -115,7 +115,7 @@ class _ParentAccountScreenState extends ConsumerState<ParentAccountScreen> {
                       isSignIn: false,
                       nameController: _nameController,
                       contactController: _contactController,
-                      onBack: () => context.pop(),
+                      onBack: () => context.go('/onboarding'),
                       onSendOtp: _sendOtp,
                       onSignIn: () =>
                           context.go('/signup/account?mode=sign-in'),
@@ -178,12 +178,23 @@ class _ReturningParentAccountScreen extends StatelessWidget {
                       Positioned(
                         left: 20,
                         top: 22,
-                        child: IconButton(
-                          onPressed: onBack,
-                          icon: const Icon(Icons.arrow_back_rounded),
-                          style: IconButton.styleFrom(
-                            backgroundColor: const Color(0xFFF2EDE5),
-                            foregroundColor: const Color(0xFF482C23),
+                        width: 48,
+                        height: 48,
+                        child: Semantics(
+                          label: 'Go back',
+                          button: true,
+                          child: Material(
+                            color: const Color(0xFFFFF8EF),
+                            borderRadius: BorderRadius.circular(16),
+                            child: InkWell(
+                              onTap: onBack,
+                              borderRadius: BorderRadius.circular(16),
+                              child: const Icon(
+                                Icons.arrow_back_rounded,
+                                color: Color(0xFF482C23),
+                                size: 29,
+                              ),
+                            ),
                           ),
                         ),
                       ),
