@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -13,15 +14,68 @@ import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/shell/presentation/app_shell.dart';
 import '../../features/shop/presentation/shop_screen.dart';
 import '../../domain/content/course_catalog.dart';
+import '../../domain/repositories/app_repositories.dart';
+import '../state/app_state.dart';
+import '../state/auth_state.dart';
 
 const _initialRoute = String.fromEnvironment(
   'BEARFETCH_INITIAL_ROUTE',
   defaultValue: '/onboarding',
 );
 
-final appRouterProvider = Provider<GoRouter>(
-  (ref) => GoRouter(
+class _RouterRefreshNotifier extends ChangeNotifier {
+  void refresh() => notifyListeners();
+}
+
+final _routerRefreshProvider = Provider<_RouterRefreshNotifier>((ref) {
+  final notifier = _RouterRefreshNotifier();
+  ref.listen(authFlowControllerProvider, (_, _) => notifier.refresh());
+  ref.listen(appStateControllerProvider, (_, _) => notifier.refresh());
+  ref.onDispose(notifier.dispose);
+  return notifier;
+});
+
+String? resolveRouteRedirect({
+  required bool requiresAuthentication,
+  required AuthFlowState? auth,
+  required AppViewState? appState,
+  required String path,
+}) {
+  if (!requiresAuthentication || auth == null) return null;
+  final signedOutRoute =
+      path == '/onboarding' ||
+      path == '/signup/account' ||
+      path == '/signup/verify';
+  if (!auth.isAuthenticated) {
+    return signedOutRoute ? null : '/onboarding';
+  }
+  if (path == '/signup/learner') return null;
+  if (appState != null && !appState.hasLearner) {
+    return '/signup/learner';
+  }
+  if (path == '/signup/approval') return null;
+  if (appState != null && !appState.parentApproved) {
+    return '/signup/approval';
+  }
+  if (signedOutRoute) return '/home';
+  return null;
+}
+
+final appRouterProvider = Provider<GoRouter>((ref) {
+  final requiresAuthentication = ref
+      .read(authRepositoryProvider)
+      .requiresAuthentication;
+  ref.read(authFlowControllerProvider);
+
+  return GoRouter(
     initialLocation: _initialRoute,
+    refreshListenable: ref.read(_routerRefreshProvider),
+    redirect: (context, state) => resolveRouteRedirect(
+      requiresAuthentication: requiresAuthentication,
+      auth: ref.read(authFlowControllerProvider).valueOrNull,
+      appState: ref.read(appStateControllerProvider).valueOrNull,
+      path: state.uri.path,
+    ),
     routes: [
       GoRoute(
         path: '/onboarding',
@@ -92,5 +146,5 @@ final appRouterProvider = Provider<GoRouter>(
         },
       ),
     ],
-  ),
-);
+  );
+});

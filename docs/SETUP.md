@@ -125,7 +125,38 @@ development
 production
 ```
 
-## 5. Supabase, Resend, and Sentry accounts
+## 5. Supabase local development
+
+Required dependencies:
+
+1. Supabase CLI `2.75.0` or compatible.
+2. Docker Desktop running.
+
+Start and validate the local stack before changing a migration:
+
+```bash
+supabase start
+supabase db reset --local
+supabase test db
+supabase db lint --local --level warning
+```
+
+Local development endpoints are printed by `supabase status`. Mailpit is used
+for local OTP delivery; it does not send real email. Do not copy local secret or
+service-role keys into Flutter configuration.
+
+Migration order:
+
+1. Add or change a timestamped file in `supabase/migrations/`.
+2. Run `supabase db reset --local` to prove clean replay.
+3. Run pgTAP and lint gates above.
+4. Review the SQL and generated diff.
+5. Apply remotely only after the project is linked and a production backup and
+   deployment window are confirmed.
+
+Never test destructive database operations against the single remote project.
+
+## 6. Supabase, Resend, and Sentry accounts
 
 Accounts are not required for Section 1 development builds. Before authentication work:
 
@@ -139,7 +170,7 @@ Accounts are not required for Section 1 development builds. Before authenticatio
 
 Single remote project risk: after public launch, remote database is production. Rehearse migrations locally with Supabase CLI, back up production, and never use production for destructive development tests.
 
-## 6. GitHub Actions secrets
+## 7. GitHub Actions secrets
 
 Quality CI needs no project credentials. Manual release workflow needs:
 
@@ -180,7 +211,7 @@ base64 < /secure/path/BearFetch.mobileprovision | tr -d '\n'
 
 Protect release environment with required reviewer approval. Do not expose secrets to pull requests from forks.
 
-## 7. Section 1 verification
+## 8. Verification
 
 ```bash
 dart format --output=none --set-exit-if-changed lib test
@@ -189,6 +220,8 @@ flutter test
 dart run build_runner build
 git diff --exit-code -- lib/data/local/app_database.g.dart
 flutter build apk --debug --flavor development --dart-define=APP_ENV=development
+supabase test db
+supabase db lint --local --level warning
 git diff --check
 ```
 

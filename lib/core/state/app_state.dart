@@ -6,7 +6,9 @@ import '../../domain/repositories/app_repositories.dart';
 class AppViewState {
   const AppViewState({
     required this.parentName,
+    required this.hasParent,
     required this.learnerName,
+    required this.hasLearner,
     required this.ageRange,
     required this.language,
     required this.parentApproved,
@@ -23,7 +25,9 @@ class AppViewState {
   });
 
   final String parentName;
+  final bool hasParent;
   final String learnerName;
+  final bool hasLearner;
   final String ageRange;
   final String language;
   final bool parentApproved;
@@ -45,7 +49,9 @@ class AppViewState {
 
   factory AppViewState.loading(CourseCatalog catalog) => AppViewState(
     parentName: 'Parent',
+    hasParent: false,
     learnerName: 'Max',
+    hasLearner: false,
     ageRange: '6–11 yr',
     language: 'English',
     parentApproved: false,
@@ -99,7 +105,9 @@ class AppStateController extends AsyncNotifier<AppViewState> {
         completedDefinitions.length == catalog.activities.length;
     return AppViewState(
       parentName: parent?.displayName ?? 'Parent',
+      hasParent: parent != null,
       learnerName: learner?.nickname ?? 'Max',
+      hasLearner: learner != null,
       ageRange: learner?.ageBand ?? '6–11 yr',
       language: learner?.language ?? 'English',
       parentApproved: await ref

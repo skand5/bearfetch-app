@@ -28,11 +28,11 @@ class TestHarness {
     );
   }
 
-  Widget wrap(Widget child) => ProviderScope(
+  Widget wrap(Widget child, {AuthRepository? authRepository}) => ProviderScope(
     overrides: [
       appDatabaseProvider.overrideWithValue(database),
       courseCatalogProvider.overrideWithValue(catalog),
-      authRepositoryProvider.overrideWithValue(repository),
+      authRepositoryProvider.overrideWithValue(authRepository ?? repository),
       parentRepositoryProvider.overrideWithValue(repository),
       learnerRepositoryProvider.overrideWithValue(repository),
       consentRepositoryProvider.overrideWithValue(repository),

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/state/app_state.dart';
+import '../../../core/state/auth_state.dart';
 import '../../../core/theme/bearfetch_theme.dart';
 
 class ParentAccountScreen extends ConsumerStatefulWidget {
@@ -40,20 +41,28 @@ class _ParentAccountScreenState extends ConsumerState<ParentAccountScreen> {
 
   Future<void> _sendOtp() async {
     final name = _nameController.text.trim();
-    final contact = _contactController.text.trim();
-    final isEmail = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(contact);
-    final isPhone = RegExp(r'^\+?[0-9][0-9\s-]{7,14}$').hasMatch(contact);
+    final email = _contactController.text.trim();
+    final isEmail = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
 
     if (name.length < 2) {
       _showValidationMessage('Enter your name.');
       return;
     }
-    if (!isEmail && !isPhone) {
-      _showValidationMessage('Enter a valid email or mobile number.');
+    if (!isEmail) {
+      _showValidationMessage('Enter a valid email address.');
       return;
     }
-    await ref.read(appStateControllerProvider.notifier).setParentName(name);
-    if (mounted) context.go('/signup/verify');
+    try {
+      await ref.read(appStateControllerProvider.notifier).setParentName(name);
+      await ref.read(authFlowControllerProvider.notifier).requestOtp(email);
+      if (mounted) context.go('/signup/verify');
+    } catch (_) {
+      if (mounted) {
+        _showValidationMessage(
+          'Could not send the code. Check your connection and try again.',
+        );
+      }
+    }
   }
 
   void _showValidationMessage(String message) {
@@ -95,7 +104,9 @@ class _ParentAccountScreenState extends ConsumerState<ParentAccountScreen> {
                       contactController: _contactController,
                       onBack: () => context.pop(),
                       onSendOtp: _sendOtp,
-                      onSignIn: () => context.go('/home-started'),
+                      onSignIn: () => _showValidationMessage(
+                        'Enter your account email to receive a sign-in code.',
+                      ),
                     ),
                   ),
                 ),
@@ -150,15 +161,12 @@ class _ParentAccountArtboard extends StatelessWidget {
       ),
       _ArtboardField(
         top: 457,
-        semanticLabel: 'Email or mobile number',
+        semanticLabel: 'Email address',
         controller: contactController,
         keyboardType: TextInputType.emailAddress,
         textCapitalization: TextCapitalization.none,
         textInputAction: TextInputAction.done,
-        autofillHints: const [
-          AutofillHints.email,
-          AutofillHints.telephoneNumber,
-        ],
+        autofillHints: const [AutofillHints.email],
         onSubmitted: (_) => onSendOtp(),
       ),
       Positioned(
@@ -300,13 +308,14 @@ class _StepChip extends StatelessWidget {
   );
 }
 
-class OtpVerificationScreen extends StatefulWidget {
+class OtpVerificationScreen extends ConsumerStatefulWidget {
   const OtpVerificationScreen({super.key});
   @override
-  State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
+  ConsumerState<OtpVerificationScreen> createState() =>
+      _OtpVerificationScreenState();
 }
 
-class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
+class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   final _controller = TextEditingController();
   @override
   void dispose() {
@@ -338,7 +347,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             ),
             const SizedBox(height: 10),
             const Text(
-              'Enter the six-digit code sent to your email or mobile. For this local prototype, use any six digits.',
+              'Enter the six-digit code sent to your email.',
               style: BearfetchTheme.bodyTextStyle,
             ),
             const SizedBox(height: 36),
@@ -363,7 +372,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             SizedBox(
               height: 58,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (_controller.text.length != 6) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -372,10 +381,54 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     );
                     return;
                   }
-                  context.go('/signup/learner');
+                  try {
+                    await ref
+                        .read(authFlowControllerProvider.notifier)
+                        .verifyOtp(_controller.text);
+                    final parentName = ref
+                        .read(appViewStateProvider)
+                        .parentName;
+                    await ref
+                        .read(appStateControllerProvider.notifier)
+                        .setParentName(parentName);
+                    if (context.mounted) context.go('/signup/learner');
+                  } catch (_) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Code expired or invalid. Request a new code.',
+                          ),
+                        ),
+                      );
+                    }
+                  }
                 },
                 child: const Text('Verify and continue'),
               ),
+            ),
+            TextButton(
+              onPressed: () async {
+                try {
+                  await ref
+                      .read(authFlowControllerProvider.notifier)
+                      .resendOtp();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('New code sent.')),
+                    );
+                  }
+                } catch (_) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Could not resend the code.'),
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Resend code'),
             ),
           ],
         ),

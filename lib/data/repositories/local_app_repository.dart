@@ -29,7 +29,31 @@ class LocalAppRepository
   final Uuid _uuid;
 
   @override
+  bool get requiresAuthentication => false;
+
+  @override
   bool get hasSession => false;
+
+  @override
+  String? get currentUserId => null;
+
+  @override
+  String? get currentEmail => null;
+
+  @override
+  Stream<AuthSessionStatus> get sessionChanges => const Stream.empty();
+
+  @override
+  Future<void> requestEmailOtp(String email) async {}
+
+  @override
+  Future<void> verifyEmailOtp({
+    required String email,
+    required String token,
+  }) async {}
+
+  @override
+  Future<void> signOut() async {}
 
   Future<void> ensureSeeded({required bool development}) async {
     await database.transaction(() async {

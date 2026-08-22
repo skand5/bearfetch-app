@@ -1,6 +1,6 @@
 # BearFetch Development Status
 
-Last updated: 2026-08-21
+Last updated: 2026-08-22
 
 This is the canonical completion and pending-work record for the BearFetch app. Update it whenever a section, external prerequisite, release gate, or explicitly deferred item changes.
 
@@ -82,54 +82,67 @@ Visual acceptance remains the current Flutter UI and approved Figma screenshots.
   - emulator install, launch, and cold restart.
 - Section commit: `c784fa9 feat: add offline persistent app architecture`.
 
-## Configured only — not yet implemented end to end
+### Section 3 — Local authentication and server security foundation
 
-- `config/development.json` contains local public runtime values and is Git-ignored.
-- Supabase URL and anon/publishable key being present does **not** mean Supabase Auth, tables, RLS, RPCs, migrations, or sync are complete.
+- Supabase is initialized before router creation when both public client values
+  are configured; persisted sessions are restored by `supabase_flutter`.
+- Parent authentication is email-only with six-digit OTP request, verify,
+  resend, logout, and expired-session state handling.
+- Router policy is implemented and tested for signed-out, expired, learner
+  setup, consent setup, and configured-family states.
+- Parent and learner data remain local-first and are mirrored to Supabase only
+  after authentication.
+- Parent email remains only in Supabase Auth. Application tables reference
+  `auth.uid()` and do not duplicate the email address.
+- Local migrations define parents, one learner per parent, versioned consent,
+  progress, course completion, append-only rewards, achievements, accessories,
+  equipment, deletion requests, and server-owned activity/accessory metadata.
+- RLS is enabled on every public application table. Ownership is derived from
+  `auth.uid()`; client-editable metadata is not trusted.
+- Security-definer implementations are private and inaccessible to clients;
+  fixed-search-path public wrappers validate the authenticated parent before
+  invoking them.
+- Implemented RPCs:
+  - `record_parent_consent`;
+  - `complete_activity`;
+  - `complete_course`;
+  - `purchase_accessory`;
+  - `equip_accessory`;
+  - `withdraw_consent`;
+  - `schedule_deletion`;
+  - `cancel_deletion`.
+- Activity and course rewards are idempotent. Purchases are atomic and use an
+  append-only honey ledger. Server metadata validates activity/accessory IDs.
+- Cross-parent RLS and RPC denial, duplicate events, rewards, purchases,
+  equipment, consent, and deletion states are covered by pgTAP.
+- Local email auth passed end to end through GoTrue and Mailpit: request,
+  resend, six-digit verification, session creation, invalid-code rejection,
+  and logout.
+- Verification passed:
+  - 60 pgTAP database tests;
+  - database lint with no schema errors;
+  - 32 Flutter unit/widget tests;
+  - `flutter analyze` with no issues;
+  - development ARM64 Android debug APK.
+- The remote Supabase project was not linked, migrated, or mutated during this
+  checkpoint.
+
+This is the completed local Section 3 checkpoint. Remote activation, production
+email delivery, legal approval, and the Section 4 restricted-state routes remain
+pending below.
+
+## Configured only — not yet production-activated
+
+- `config/development.json` contains user-supplied public runtime values and is
+  Git-ignored.
+- Supabase Auth, migrations, RLS, and RPCs are implemented and verified locally.
+  Public remote values being present does **not** mean migrations were applied,
+  remote Auth/SMTP was configured, or production was verified.
 - Sentry DSN and environment being present does **not** mean Sentry initialization, consent gating, PII scrubbing, or symbol upload are complete.
 - GitHub workflow files exist locally, but they do not run until the repository/remote and Actions secrets are configured.
 - iOS scheme scaffolding exists, but signing and archive verification are incomplete.
 
-## Next — Section 3: Supabase authentication, consent, and server data model
-
-### Flutter authentication and routing
-
-- Initialize Supabase before router creation and restore persisted sessions.
-- Change onboarding contact input from email-or-mobile to email only.
-- Implement six-digit email OTP request, verify, expiry, resend, logout, and session restoration.
-- Add router guards for onboarding, consent, learner setup, authenticated app, withdrawn consent, and pending deletion.
-
-### Supabase database and security
-
-- Rehearse all migrations with local Supabase CLI before applying them remotely.
-- Add application tables for parents, learners, consent records, progress, reward transactions, achievements, owned/equipped accessories, deletion requests, and server-side content/accessory metadata.
-- Store the parent email only in Supabase Auth; application tables reference `auth.uid()`.
-- Enable RLS on every public table and add ownership policies derived only from `auth.uid()`.
-- Add cross-parent denial tests for every table and RPC.
-- Keep the service-role key only in Edge Functions/server infrastructure; never put it in Flutter config.
-
-### Server operations
-
-- Implement and test:
-  - `complete_activity(activity_id, event_id)`;
-  - `complete_course(event_id)`;
-  - `purchase_accessory(accessory_id, event_id)`;
-  - `equip_accessory(accessory_id, event_id)`;
-  - `withdraw_consent()`;
-  - `schedule_deletion(target)`;
-  - `cancel_deletion(request_id)`.
-- Validate bundled content/accessory IDs server-side.
-- Enforce idempotent activity/course rewards and an append-only reward ledger.
-- Make honey purchases online-only and atomic.
-
-### Consent
-
-- Add direct privacy notice and versioned consent text.
-- Store email-plus consent record, confirmation state, withdrawal timestamp, and audit timestamps.
-- Send a follow-up confirmation email after consent.
-- Obtain qualified US counsel approval for the exact COPPA/email-plus eligibility and wording before public release.
-
-## Pending — Section 4: sync, privacy, and operations
+## Next — Section 4: sync, privacy, and operations
 
 - Process the local outbox with exponential backoff, idempotency keys, connectivity triggers, and app-resume triggers.
 - Reconcile remote state after login, reinstall, and use on a second device.
@@ -138,6 +151,9 @@ Visual acceptance remains the current Flutter UI and approved Figma screenshots.
   - latest server-accepted profile/equipment timestamp wins;
   - completed learning is never rolled back by older remote progress.
 - Add Parent Settings and Privacy routes for viewing data, consent confirmation, export, consent withdrawal, learner deletion, family deletion, deletion cancellation, sign-out.
+- Add explicit router guards and restricted UI for withdrawn consent and pending
+  deletion; the server states exist but the app routes are deferred to this
+  section.
 - Require fresh email OTP before export or deletion.
 - Immediately restrict learner access and sync after consent withdrawal or a deletion request.
 - Implement the 30-day deletion lifecycle, scheduled hard purge, Auth deletion, and documented backup expiry.
@@ -195,8 +211,9 @@ These items are intentionally postponed, not complete and not removed from scope
 
 ## External prerequisites and open release gates
 
-- Supabase remote project access and production configuration must be confirmed before remote migrations or Auth work are treated as complete.
-- Local Supabase CLI and Docker readiness must be verified before migration rehearsal.
+- Confirm the exact remote Supabase project, backup state, and deployment window
+  before linking or applying the locally verified migration.
+- Run hosted cross-parent/RPC smoke tests after the remote migration is applied.
 - Resend sender/domain configuration is deferred and outstanding.
 - Sentry project credentials are configured publicly, but production-safe runtime integration remains outstanding.
 - Android upload keystore, secure backup, passwords, Play App Signing, and Play Console app setup are not yet confirmed complete.
@@ -214,11 +231,13 @@ These items are intentionally postponed, not complete and not removed from scope
 
 ## Recommended order from this checkpoint
 
-1. Section 3 local Supabase migrations, metadata, RLS, and RPC tests.
-2. Section 3 Flutter email OTP, session restoration, router guards, and consent flow.
-3. Complete the deferred Resend configuration before production email verification.
-4. Section 4 sync and conflict reconciliation.
-5. Section 4 Parent Settings, privacy export/withdrawal/deletion, and Sentry privacy controls.
-6. Section 5 full regression and Android release preparation.
-7. Resume GitHub CI activation and iOS signing when the deferred prerequisites are ready.
-
+1. Section 4 sync and conflict reconciliation against the local Supabase stack.
+2. Section 4 Parent Settings, privacy export/withdrawal/deletion, restricted
+   router states, and Sentry privacy controls.
+3. Complete deferred Resend configuration before hosted production OTP and
+   consent-email verification.
+4. Link and migrate the confirmed remote Supabase project in a controlled
+   deployment window, then run hosted security smoke tests.
+5. Section 5 full regression and Android release preparation.
+6. Resume GitHub CI activation and iOS signing when the deferred prerequisites
+   are ready.

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/local/app_database.dart';
 import '../../data/repositories/local_app_repository.dart';
+import '../../data/repositories/supabase_repositories.dart';
 import '../../domain/content/course_catalog.dart';
 import '../../domain/repositories/app_repositories.dart';
 import '../config/app_config.dart';
@@ -23,6 +25,10 @@ class BootstrapDependencies {
   const BootstrapDependencies({
     required this.database,
     required this.repository,
+    required this.authRepository,
+    required this.parentRepository,
+    required this.learnerRepository,
+    required this.consentRepository,
     required this.catalog,
     required this.status,
     this.syncWarning,
@@ -30,6 +36,10 @@ class BootstrapDependencies {
 
   final AppDatabase database;
   final LocalAppRepository repository;
+  final AuthRepository authRepository;
+  final ParentRepository parentRepository;
+  final LearnerRepository learnerRepository;
+  final ConsentRepository consentRepository;
   final CourseCatalog catalog;
   final StartupStatus status;
   final String? syncWarning;
@@ -52,9 +62,24 @@ final bootstrapDependenciesProvider = FutureProvider<BootstrapDependencies>((
       development: AppConfig.environment == AppEnvironment.development,
     );
     final syncWarning = await repository.lastRecoverableError();
+    final client = AppConfig.hasSupabaseConfiguration
+        ? Supabase.instance.client
+        : null;
     return BootstrapDependencies(
       database: database,
       repository: repository,
+      authRepository: client == null
+          ? repository
+          : SupabaseAuthRepository(client),
+      parentRepository: client == null
+          ? repository
+          : SupabaseParentRepository(repository, client),
+      learnerRepository: client == null
+          ? repository
+          : SupabaseLearnerRepository(repository, client),
+      consentRepository: client == null
+          ? repository
+          : SupabaseConsentRepository(repository, client),
       catalog: catalog,
       status: syncWarning == null
           ? StartupStatus.ready
@@ -87,13 +112,17 @@ class BearfetchBootstrapApp extends ConsumerWidget {
           overrides: [
             appDatabaseProvider.overrideWithValue(dependencies.database),
             courseCatalogProvider.overrideWithValue(dependencies.catalog),
-            authRepositoryProvider.overrideWithValue(dependencies.repository),
-            parentRepositoryProvider.overrideWithValue(dependencies.repository),
+            authRepositoryProvider.overrideWithValue(
+              dependencies.authRepository,
+            ),
+            parentRepositoryProvider.overrideWithValue(
+              dependencies.parentRepository,
+            ),
             learnerRepositoryProvider.overrideWithValue(
-              dependencies.repository,
+              dependencies.learnerRepository,
             ),
             consentRepositoryProvider.overrideWithValue(
-              dependencies.repository,
+              dependencies.consentRepository,
             ),
             progressRepositoryProvider.overrideWithValue(
               dependencies.repository,

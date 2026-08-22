@@ -4,8 +4,17 @@ import '../../data/local/app_database.dart';
 
 enum PurchaseResult { purchased, alreadyOwned, insufficientHoney }
 
+enum AuthSessionStatus { signedOut, authenticated, expired }
+
 abstract interface class AuthRepository {
+  bool get requiresAuthentication;
   bool get hasSession;
+  String? get currentUserId;
+  String? get currentEmail;
+  Stream<AuthSessionStatus> get sessionChanges;
+  Future<void> requestEmailOtp(String email);
+  Future<void> verifyEmailOtp({required String email, required String token});
+  Future<void> signOut();
 }
 
 abstract interface class ParentRepository {

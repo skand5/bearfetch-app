@@ -31,7 +31,7 @@ void main() {
     await tester.tap(parentButton);
     await tester.pumpAndSettle();
     expect(find.bySemanticsLabel('Parent name'), findsOneWidget);
-    expect(find.bySemanticsLabel('Email or mobile number'), findsOneWidget);
+    expect(find.bySemanticsLabel('Email address'), findsOneWidget);
 
     final sendOtp = find.bySemanticsLabel('Send OTP');
     await tester.ensureVisible(sendOtp);
