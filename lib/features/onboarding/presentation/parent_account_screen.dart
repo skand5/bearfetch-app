@@ -231,7 +231,7 @@ class _ReturningParentAccountScreen extends StatelessWidget {
                         left: 20,
                         top: 255,
                         width: 350,
-                        height: 300,
+                        height: 230,
                         child: DecoratedBox(
                           decoration: BoxDecoration(
                             color: const Color(0xFFFFFCF8),
@@ -304,7 +304,7 @@ class _ReturningParentAccountScreen extends StatelessWidget {
                       ),
                       Positioned(
                         left: 20,
-                        top: 608,
+                        top: 515,
                         width: 350,
                         height: 64,
                         child: ElevatedButton.icon(
@@ -325,7 +325,7 @@ class _ReturningParentAccountScreen extends StatelessWidget {
                       ),
                       Positioned(
                         left: 60,
-                        top: 688,
+                        top: 595,
                         width: 270,
                         child: TextButton(
                           onPressed: onCreateAccount,
