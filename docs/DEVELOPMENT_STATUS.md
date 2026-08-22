@@ -231,10 +231,16 @@ These items are intentionally postponed, not complete and not removed from scope
 
 ### GitHub repository and CI secrets
 
-- User decision: **GitHub is not yet set up.**
-- Create/connect the GitHub repository and remote.
-- Push the existing local commits.
-- Configure branch protection and required checks.
+- GitHub repository and remote are configured.
+- GitHub-hosted Actions are blocked by the account billing/spending setting.
+- User decision: use a private, self-hosted macOS ARM64 runner. CI is limited to
+  trusted `main` pushes and manual dispatch; it must never run pull requests
+  from forks.
+- Register and keep the runner online using
+  [SELF_HOSTED_RUNNER.md](SELF_HOSTED_RUNNER.md), then verify quality CI and
+  secret scanning.
+- Configure branch protection only after the runner has completed a successful
+  CI run, otherwise it can block all merges.
 - Add CI-only secrets listed in `docs/SETUP.md`.
 - Verify CI, secret scanning, Android release build, and later iOS archive jobs.
 
