@@ -239,6 +239,10 @@ These items are intentionally postponed, not complete and not removed from scope
 - Register and keep the runner online using
   [SELF_HOSTED_RUNNER.md](SELF_HOSTED_RUNNER.md), then verify quality CI and
   secret scanning.
+- Verified 2026-08-22: the self-hosted runner service completed both
+  `quality-and-android` and `secret-scan` successfully. The Android job passed
+  formatting, analysis, tests, Drift generation, debug APK build, and artifact
+  upload.
 - Configure branch protection only after the runner has completed a successful
   CI run, otherwise it can block all merges.
 - Add CI-only secrets listed in `docs/SETUP.md`.
