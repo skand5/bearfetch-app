@@ -12,6 +12,8 @@ class AppViewState {
     required this.ageRange,
     required this.language,
     required this.parentApproved,
+    required this.consentStatus,
+    required this.hasPendingDeletion,
     required this.completedActivityIds,
     required this.completedSteps,
     required this.nextCourseRoute,
@@ -31,6 +33,8 @@ class AppViewState {
   final String ageRange;
   final String language;
   final bool parentApproved;
+  final String consentStatus;
+  final bool hasPendingDeletion;
   final Set<String> completedActivityIds;
   final int completedSteps;
   final String nextCourseRoute;
@@ -55,6 +59,8 @@ class AppViewState {
     ageRange: '6–11 yr',
     language: 'English',
     parentApproved: false,
+    consentStatus: 'none',
+    hasPendingDeletion: false,
     completedActivityIds: const {},
     completedSteps: 0,
     nextCourseRoute: '/activity/${catalog.firstActivity.id}',
@@ -113,6 +119,10 @@ class AppStateController extends AsyncNotifier<AppViewState> {
       parentApproved: await ref
           .read(consentRepositoryProvider)
           .hasActiveConsent(),
+      consentStatus: await ref.read(consentRepositoryProvider).consentStatus(),
+      hasPendingDeletion:
+          (await ref.read(privacyRepositoryProvider).deletionRequestState())
+              .isPending,
       completedActivityIds: Set.unmodifiable(completed),
       completedSteps: courseCompleted ? 36 : activityDisplayStep,
       nextCourseRoute: allActivitiesCompleted

@@ -92,10 +92,8 @@ class ProfileScreen extends ConsumerWidget {
                         width: 350,
                         height: 55,
                         child: _ProfileHitTarget(
-                          label: 'Notification settings',
-                          onTap: () => showLocalMessage(
-                            'Notification settings are local in this UI phase.',
-                          ),
+                          label: 'Parent settings',
+                          onTap: () => context.go('/parent-settings'),
                         ),
                       ),
                       Positioned(

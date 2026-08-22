@@ -202,13 +202,13 @@ class LocalAppRepository
 
   @override
   Future<bool> hasActiveConsent() async {
-    final row =
-        await (database.select(database.consentRecords)
-              ..orderBy([(row) => OrderingTerm.desc(row.updatedAt)])
-              ..limit(1))
-            .getSingleOrNull();
+    final row = await _latestConsent();
     return row?.status == 'active';
   }
+
+  @override
+  Future<String> consentStatus() async =>
+      (await _latestConsent())?.status ?? 'none';
 
   @override
   Future<void> approveLocalConsent() async {
@@ -492,6 +492,318 @@ class LocalAppRepository
   }
 
   @override
+  Future<SyncRunResult> syncNow() async => const SyncRunResult(
+    status: SyncRunStatus.skipped,
+    message: 'Remote sync is not configured.',
+  );
+
+  Future<List<SyncOutboxData>> pendingSyncEvents({DateTime? now}) async {
+    final cutoff = now ?? DateTime.now();
+    return (database.select(database.syncOutbox)
+          ..where(
+            (row) =>
+                row.syncedAt.isNull() &
+                (row.nextAttemptAt.isNull() |
+                    row.nextAttemptAt.isSmallerOrEqualValue(cutoff)),
+          )
+          ..orderBy([(row) => OrderingTerm.asc(row.createdAt)]))
+        .get();
+  }
+
+  Future<void> markSyncEventSucceeded(String eventId) => database.transaction(
+    () async {
+      final now = DateTime.now();
+      await (database.update(
+        database.syncOutbox,
+      )..where((row) => row.eventId.equals(eventId))).write(
+        SyncOutboxCompanion(
+          syncedAt: Value(now),
+          lastError: const Value(null),
+          nextAttemptAt: const Value(null),
+        ),
+      );
+      await _setSyncMetadata('last_successful_sync_at', now.toIso8601String());
+      await _setSyncMetadata('last_recoverable_error', '');
+    },
+  );
+
+  Future<void> markSyncEventFailed(String eventId, Object error) =>
+      database.transaction(() async {
+        final current = await (database.select(
+          database.syncOutbox,
+        )..where((row) => row.eventId.equals(eventId))).getSingleOrNull();
+        if (current == null) return;
+        final attempts = current.attempts + 1;
+        final minutes = 1 << attempts.clamp(0, 8).toInt();
+        final retryAt = DateTime.now().add(Duration(minutes: minutes));
+        final message = _safeSyncError(error);
+        await (database.update(
+          database.syncOutbox,
+        )..where((row) => row.eventId.equals(eventId))).write(
+          SyncOutboxCompanion(
+            attempts: Value(attempts),
+            nextAttemptAt: Value(retryAt),
+            lastError: Value(message),
+          ),
+        );
+        await _setSyncMetadata('last_recoverable_error', message);
+      });
+
+  Future<void> replaceWithRemoteSnapshot({
+    required Map<String, Object?> parent,
+    required Map<String, Object?> learner,
+    required List<Map<String, Object?>> consents,
+    required List<Map<String, Object?>> progress,
+    required List<Map<String, Object?>> rewards,
+    required List<Map<String, Object?>> achievements,
+    required List<Map<String, Object?>> ownedAccessories,
+    required List<Map<String, Object?>> equippedAccessories,
+    required List<Map<String, Object?>> deletionRequests,
+  }) => database.transaction(() async {
+    final localRetries = {
+      for (final row in await database.select(database.activityProgress).get())
+        row.activityId: row.retryCount,
+    };
+    await database.delete(database.equippedAccessories).go();
+    await database.delete(database.ownedAccessories).go();
+    await database.delete(database.achievements).go();
+    await database.delete(database.rewardTransactions).go();
+    await database.delete(database.activityProgress).go();
+    await database.delete(database.consentRecords).go();
+    await database.delete(database.deletionRequests).go();
+    await database.delete(database.learnerProfiles).go();
+    await database.delete(database.parentProfiles).go();
+
+    final parentId = parent['id']! as String;
+    final learnerId = learner['id']! as String;
+    await database
+        .into(database.parentProfiles)
+        .insert(
+          ParentProfilesCompanion.insert(
+            id: parentId,
+            authUserId: Value(parentId),
+            displayName: parent['display_name']! as String,
+            createdAt: _readTimestamp(parent['created_at']),
+            updatedAt: _readTimestamp(parent['updated_at']),
+          ),
+        );
+    await database
+        .into(database.learnerProfiles)
+        .insert(
+          LearnerProfilesCompanion.insert(
+            id: learnerId,
+            parentId: parentId,
+            nickname: learner['nickname']! as String,
+            avatarId: learner['avatar_id']! as String,
+            ageBand: learner['age_band']! as String,
+            language: learner['language']! as String,
+            createdAt: _readTimestamp(learner['created_at']),
+            updatedAt: _readTimestamp(learner['updated_at']),
+            isDeleted: Value(learner['deleted_at'] != null),
+          ),
+        );
+    for (final row in consents) {
+      await database
+          .into(database.consentRecords)
+          .insert(
+            ConsentRecordsCompanion.insert(
+              id: row['id']! as String,
+              parentId: parentId,
+              status: row['status']! as String,
+              version: Value(row['consent_version'] as String?),
+              consentedAt: Value(_readNullableTimestamp(row['consented_at'])),
+              withdrawnAt: Value(_readNullableTimestamp(row['withdrawn_at'])),
+              createdAt: _readTimestamp(row['created_at']),
+              updatedAt: _readTimestamp(row['updated_at']),
+            ),
+          );
+    }
+    for (final row in progress) {
+      final activityId = row['activity_id']! as String;
+      await database
+          .into(database.activityProgress)
+          .insert(
+            ActivityProgressCompanion.insert(
+              learnerId: learnerId,
+              activityId: activityId,
+              completedAt: Value(_readNullableTimestamp(row['completed_at'])),
+              retryCount: Value(localRetries[activityId] ?? 0),
+            ),
+          );
+    }
+    for (final row in rewards) {
+      await database
+          .into(database.rewardTransactions)
+          .insert(
+            RewardTransactionsCompanion.insert(
+              id: row['id']! as String,
+              learnerId: learnerId,
+              kind: row['kind']! as String,
+              amount: row['amount']! as int,
+              reasonType: row['reason_type']! as String,
+              reasonId: row['reason_id']! as String,
+              idempotencyKey: row['idempotency_key']! as String,
+              occurredAt: _readTimestamp(row['occurred_at']),
+            ),
+          );
+    }
+    for (final row in achievements) {
+      await database
+          .into(database.achievements)
+          .insert(
+            AchievementsCompanion.insert(
+              learnerId: learnerId,
+              achievementId: row['achievement_id']! as String,
+              earnedAt: _readTimestamp(row['earned_at']),
+            ),
+          );
+    }
+    for (final row in ownedAccessories) {
+      await database
+          .into(database.ownedAccessories)
+          .insert(
+            OwnedAccessoriesCompanion.insert(
+              learnerId: learnerId,
+              accessoryId: row['accessory_id']! as String,
+              purchasedAt: _readTimestamp(row['purchased_at']),
+            ),
+          );
+    }
+    for (final row in equippedAccessories) {
+      await database
+          .into(database.equippedAccessories)
+          .insert(
+            EquippedAccessoriesCompanion.insert(
+              learnerId: learnerId,
+              slot: row['slot']! as String,
+              accessoryId: row['accessory_id']! as String,
+              equippedAt: _readTimestamp(row['equipped_at']),
+            ),
+          );
+    }
+    for (final row in deletionRequests) {
+      await database
+          .into(database.deletionRequests)
+          .insert(
+            DeletionRequestsCompanion.insert(
+              id: row['id']! as String,
+              target: row['target']! as String,
+              status: row['status']! as String,
+              requestedAt: _readTimestamp(row['requested_at']),
+              scheduledFor: _readTimestamp(row['scheduled_for']),
+              cancelledAt: Value(_readNullableTimestamp(row['cancelled_at'])),
+            ),
+          );
+    }
+    await _setSyncMetadata(
+      'last_reconciled_at',
+      DateTime.now().toIso8601String(),
+    );
+  });
+
+  @override
+  Future<void> withdrawConsent() => database.transaction(() async {
+    final parent = await getParent();
+    if (parent == null) throw StateError('Parent profile is required.');
+    final now = DateTime.now();
+    final existing = await _latestConsent();
+    await database
+        .into(database.consentRecords)
+        .insertOnConflictUpdate(
+          ConsentRecordsCompanion.insert(
+            id: existing?.id ?? 'local-consent',
+            parentId: parent.id,
+            status: 'withdrawn',
+            version: Value(existing?.version),
+            consentedAt: Value(existing?.consentedAt),
+            withdrawnAt: Value(now),
+            createdAt: existing?.createdAt ?? now,
+            updatedAt: now,
+          ),
+        );
+    await _queueEvent(
+      eventId: 'withdraw-consent:${now.microsecondsSinceEpoch}',
+      operation: 'withdraw_consent',
+      payload: const {},
+      now: now,
+    );
+  });
+
+  @override
+  Future<DeletionRequestState> deletionRequestState() async {
+    final row =
+        await (database.select(database.deletionRequests)
+              ..where((row) => row.status.equals('pending'))
+              ..orderBy([(row) => OrderingTerm.desc(row.requestedAt)])
+              ..limit(1))
+            .getSingleOrNull();
+    return row == null
+        ? const DeletionRequestState(status: 'none')
+        : DeletionRequestState(
+            status: row.status,
+            requestId: row.id,
+            scheduledFor: row.scheduledFor,
+          );
+  }
+
+  @override
+  Future<DeletionRequestState> scheduleDeletion(DeletionTarget target) =>
+      database.transaction(() async {
+        final pending = await deletionRequestState();
+        if (pending.isPending) return pending;
+        final now = DateTime.now();
+        final id = _uuid.v4();
+        final scheduledFor = now.add(const Duration(days: 30));
+        await database
+            .into(database.deletionRequests)
+            .insert(
+              DeletionRequestsCompanion.insert(
+                id: id,
+                target: target.name,
+                status: 'pending',
+                requestedAt: now,
+                scheduledFor: scheduledFor,
+              ),
+            );
+        await _queueEvent(
+          eventId: 'schedule-deletion:$id',
+          operation: 'schedule_deletion',
+          payload: {'target': target.name, 'requestId': id},
+          now: now,
+        );
+        return DeletionRequestState(
+          status: 'pending',
+          requestId: id,
+          scheduledFor: scheduledFor,
+        );
+      });
+
+  @override
+  Future<void> cancelDeletion(String requestId) => database.transaction(
+    () async {
+      final now = DateTime.now();
+      final updated =
+          await (database.update(database.deletionRequests)..where(
+                (row) =>
+                    row.id.equals(requestId) & row.status.equals('pending'),
+              ))
+              .write(
+                DeletionRequestsCompanion(
+                  status: const Value('cancelled'),
+                  cancelledAt: Value(now),
+                ),
+              );
+      if (updated == 0) throw StateError('No pending deletion request found.');
+      await _queueEvent(
+        eventId: 'cancel-deletion:$requestId:${now.microsecondsSinceEpoch}',
+        operation: 'cancel_deletion',
+        payload: {'requestId': requestId},
+        now: now,
+      );
+    },
+  );
+
+  @override
   Future<Map<String, Object?>> exportLocalData() async => {
     'parent': (await getParent())?.displayName,
     'learner': (await getLearner())?.nickname,
@@ -501,6 +813,46 @@ class LocalAppRepository
     'achievements': (await achievementIds()).toList()..sort(),
     'ownedAccessories': (await ownedAccessoryIds()).toList()..sort(),
     'equippedAccessories': await equippedAccessories(),
+    'consentStatus': (await _latestConsent())?.status ?? 'none',
+    'deletionRequest': {
+      'status': (await deletionRequestState()).status,
+      'scheduledFor': (await deletionRequestState()).scheduledFor
+          ?.toIso8601String(),
+    },
+  };
+
+  Future<ConsentRecord?> _latestConsent() =>
+      (database.select(database.consentRecords)
+            ..orderBy([(row) => OrderingTerm.desc(row.updatedAt)])
+            ..limit(1))
+          .getSingleOrNull();
+
+  Future<void> _setSyncMetadata(String key, String value) => database
+      .into(database.syncMetadata)
+      .insertOnConflictUpdate(
+        SyncMetadataCompanion.insert(
+          key: key,
+          value: value,
+          updatedAt: DateTime.now(),
+        ),
+      );
+
+  String _safeSyncError(Object error) {
+    final text = error.toString().replaceAll(RegExp(r'\s+'), ' ').trim();
+    return text.length <= 180 ? text : text.substring(0, 180);
+  }
+
+  DateTime _readTimestamp(Object? value) {
+    final parsed = _readNullableTimestamp(value);
+    if (parsed == null) throw StateError('Remote timestamp was missing.');
+    return parsed;
+  }
+
+  DateTime? _readNullableTimestamp(Object? value) => switch (value) {
+    null => null,
+    DateTime value => value,
+    String value => DateTime.parse(value),
+    _ => throw StateError('Remote timestamp was invalid.'),
   };
 
   Future<LearnerProfile> _requireLearner() async {

@@ -113,6 +113,17 @@ class SyncMetadata extends Table {
   Set<Column<Object>> get primaryKey => {key};
 }
 
+class DeletionRequests extends Table {
+  TextColumn get id => text()();
+  TextColumn get target => text()();
+  TextColumn get status => text()();
+  DateTimeColumn get requestedAt => dateTime()();
+  DateTimeColumn get scheduledFor => dateTime()();
+  DateTimeColumn get cancelledAt => dateTime().nullable()();
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 class AppMetadata extends Table {
   TextColumn get key => text()();
   TextColumn get value => text()();
@@ -133,6 +144,7 @@ class AppMetadata extends Table {
     EquippedAccessories,
     SyncOutbox,
     SyncMetadata,
+    DeletionRequests,
     AppMetadata,
   ],
 )
@@ -142,13 +154,14 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (migrator) => migrator.createAll(),
     onUpgrade: (migrator, from, to) async {
       if (from == 1) await _migrateV1ToV2(migrator);
+      if (from == 2) await migrator.createTable(deletionRequests);
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');

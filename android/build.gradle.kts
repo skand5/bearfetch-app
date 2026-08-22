@@ -1,3 +1,6 @@
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
+
 allprojects {
     repositories {
         google()
@@ -17,6 +20,15 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
+}
+
+// sentry_flutter 8.x still declares Kotlin language level 1.6. Kotlin 2.2
+// rejects that level, so compile every Android Kotlin subproject at the
+// supported 1.8 level while retaining the app's Java 17 target.
+subprojects {
+    tasks.withType<KotlinCompilationTask<*>>().configureEach {
+        compilerOptions.languageVersion.set(KotlinVersion.KOTLIN_1_8)
+    }
 }
 
 tasks.register<Delete>("clean") {

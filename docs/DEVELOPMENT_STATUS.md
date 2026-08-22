@@ -128,8 +128,42 @@ Visual acceptance remains the current Flutter UI and approved Figma screenshots.
   checkpoint.
 
 This is the completed local Section 3 checkpoint. Remote activation, production
-email delivery, legal approval, and the Section 4 restricted-state routes remain
-pending below.
+email delivery, and legal approval remain pending below.
+
+### Section 4 — Sync, privacy, and operational controls
+
+- Local outbox processing now supports idempotent dispatch, bounded exponential
+  retry metadata, app-resume triggers, and connectivity-recovery triggers.
+- Remote reconciliation is implemented for authenticated sessions. It replaces
+  the local snapshot only after queued writes are accepted; completed learning
+  is never rolled back by an older remote state.
+- Server mutations for progress, purchases, equipment, withdrawal, deletion
+  scheduling, and deletion cancellation use stable event IDs. Deletion uses a
+  stable client request ID, so an offline schedule-then-cancel sequence remains
+  cancellable after sync.
+- Parent Settings and restricted-access routes are implemented: family-data
+  view/export, consent withdrawal, learner/family deletion scheduling,
+  cancellation, and sign-out. Export and deletion actions require a fresh
+  email OTP in authenticated builds.
+- Withdrawn-consent and pending-deletion router guards restrict learner access
+  immediately and cannot be bypassed through onboarding URLs.
+- The 30-day deletion lifecycle is implemented locally and in the database
+  contract. The protected `purge-deletions` Edge Function and deployment
+  procedure are documented in `docs/OPERATIONS.md`; it is not deployed until
+  the remote Supabase project is explicitly linked.
+- Sentry is now initialized as consent-gated crash reporting only. It sends no
+  event before active consent and strips all user/content/request/breadcrumb
+  fields from permitted technical crash events. Analytics, replay,
+  screenshots, performance tracing, profiles, and user identity are disabled.
+- The notification bell remains local UI only; no push registration or
+  notification backend was added.
+- Verification passed locally:
+  - 64 pgTAP Supabase database/RLS/RPC tests after a clean local reset;
+  - 38 Flutter unit/widget tests;
+  - `flutter analyze` with no issues;
+  - development ARM64 Android debug APK.
+- The remote Supabase project was not linked, migrated, or mutated during this
+  checkpoint.
 
 ## Configured only — not yet production-activated
 
@@ -138,32 +172,11 @@ pending below.
 - Supabase Auth, migrations, RLS, and RPCs are implemented and verified locally.
   Public remote values being present does **not** mean migrations were applied,
   remote Auth/SMTP was configured, or production was verified.
-- Sentry DSN and environment being present does **not** mean Sentry initialization, consent gating, PII scrubbing, or symbol upload are complete.
+- Sentry runtime initialization, consent gating, and PII scrubbing are
+  implemented locally. Sentry project verification and CI symbol upload remain
+  unconfigured until the remote/CI prerequisites are available.
 - GitHub workflow files exist locally, but they do not run until the repository/remote and Actions secrets are configured.
 - iOS scheme scaffolding exists, but signing and archive verification are incomplete.
-
-## Next — Section 4: sync, privacy, and operations
-
-- Process the local outbox with exponential backoff, idempotency keys, connectivity triggers, and app-resume triggers.
-- Reconcile remote state after login, reinstall, and use on a second device.
-- Apply conflict policies:
-  - furthest valid learning completion wins;
-  - latest server-accepted profile/equipment timestamp wins;
-  - completed learning is never rolled back by older remote progress.
-- Add Parent Settings and Privacy routes for viewing data, consent confirmation, export, consent withdrawal, learner deletion, family deletion, deletion cancellation, sign-out.
-- Add explicit router guards and restricted UI for withdrawn consent and pending
-  deletion; the server states exist but the app routes are deferred to this
-  section.
-- Require fresh email OTP before export or deletion.
-- Immediately restrict learner access and sync after consent withdrawal or a deletion request.
-- Implement the 30-day deletion lifecycle, scheduled hard purge, Auth deletion, and documented backup expiry.
-- Implement Sentry as crash reporting only:
-  - no analytics, replay, screenshots, performance traces, user text, email, learner name, or form/activity answers;
-  - `sendDefaultPii = false`;
-  - send nothing before active consent;
-  - scrub again in `beforeSend`;
-  - upload symbols/source maps using CI-only credentials.
-- Keep the notification bell local; do not add push registration or a notification backend.
 
 ## Pending — Section 5: verification and production release
 

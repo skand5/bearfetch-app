@@ -11,6 +11,7 @@ import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/onboarding/presentation/learner_setup_screens.dart';
 import '../../features/onboarding/presentation/parent_account_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
+import '../../features/profile/presentation/parent_settings_screen.dart';
 import '../../features/shell/presentation/app_shell.dart';
 import '../../features/shop/presentation/shop_screen.dart';
 import '../../domain/content/course_catalog.dart';
@@ -52,6 +53,16 @@ String? resolveRouteRedirect({
   if (path == '/signup/learner') return null;
   if (appState != null && !appState.hasLearner) {
     return '/signup/learner';
+  }
+  if (appState != null && appState.hasPendingDeletion) {
+    return path == '/access-restricted' || path == '/parent-settings'
+        ? null
+        : '/access-restricted?state=pending-deletion';
+  }
+  if (appState?.consentStatus == 'withdrawn') {
+    return path == '/access-restricted' || path == '/parent-settings'
+        ? null
+        : '/access-restricted?state=consent-withdrawn';
   }
   if (path == '/signup/approval') return null;
   if (appState != null && !appState.parentApproved) {
@@ -96,6 +107,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/signup/approval',
         builder: (context, state) => const ParentApprovalScreen(),
+      ),
+      GoRoute(
+        path: '/parent-settings',
+        builder: (context, state) => const ParentSettingsScreen(),
+      ),
+      GoRoute(
+        path: '/access-restricted',
+        builder: (context, state) => AccessRestrictedScreen(
+          state: state.uri.queryParameters['state'] ?? 'consent-withdrawn',
+        ),
       ),
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),

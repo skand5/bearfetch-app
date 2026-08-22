@@ -131,9 +131,22 @@ class BearfetchBootstrapApp extends ConsumerWidget {
               dependencies.repository,
             ),
             shopRepositoryProvider.overrideWithValue(dependencies.repository),
-            syncRepositoryProvider.overrideWithValue(dependencies.repository),
+            syncRepositoryProvider.overrideWithValue(
+              AppConfig.hasSupabaseConfiguration
+                  ? SupabaseSyncRepository(
+                      dependencies.repository,
+                      Supabase.instance.client,
+                      dependencies.authRepository,
+                    )
+                  : dependencies.repository,
+            ),
             privacyRepositoryProvider.overrideWithValue(
-              dependencies.repository,
+              AppConfig.hasSupabaseConfiguration
+                  ? SupabasePrivacyRepository(
+                      dependencies.repository,
+                      Supabase.instance.client,
+                    )
+                  : dependencies.repository,
             ),
           ],
           child: BearfetchApp(syncWarning: dependencies.syncWarning),

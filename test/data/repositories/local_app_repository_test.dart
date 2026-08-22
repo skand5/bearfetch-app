@@ -148,4 +148,60 @@ void main() {
       'llm-starter-certificate',
     });
   });
+
+  test(
+    'consent withdrawal is queued and blocks active consent locally',
+    () async {
+      await repository.withdrawConsent();
+
+      expect(await repository.hasActiveConsent(), isFalse);
+      expect(await repository.consentStatus(), 'withdrawn');
+      final event = await database.select(database.syncOutbox).getSingle();
+      expect(event.operation, 'withdraw_consent');
+      expect(jsonDecode(event.payloadJson), isEmpty);
+    },
+  );
+
+  test(
+    'deletion is restricted locally for 30 days and can be cancelled',
+    () async {
+      final request = await repository.scheduleDeletion(DeletionTarget.learner);
+
+      expect(request.isPending, isTrue);
+      expect(request.scheduledFor, isNotNull);
+      expect(
+        request.scheduledFor!.difference(DateTime.now()).inDays,
+        inInclusiveRange(29, 30),
+      );
+      expect(
+        (await repository.deletionRequestState()).requestId,
+        request.requestId,
+      );
+
+      await repository.cancelDeletion(request.requestId!);
+      expect((await repository.deletionRequestState()).status, 'none');
+      final operations = (await database.select(database.syncOutbox).get()).map(
+        (event) => event.operation,
+      );
+      expect(operations, containsAll(['schedule_deletion', 'cancel_deletion']));
+    },
+  );
+
+  test('failed sync events use bounded exponential retry metadata', () async {
+    await repository.completeActivity(
+      activityId: 'unit-01-01',
+      rewardId: 'activity-unit-01-01',
+    );
+    final pending = await repository.pendingSyncEvents();
+    final before = DateTime.now();
+
+    await repository.markSyncEventFailed(pending.single.eventId, 'offline');
+    final failed = await database.select(database.syncOutbox).getSingle();
+    expect(failed.attempts, 1);
+    expect(failed.nextAttemptAt, isNotNull);
+    expect(
+      failed.nextAttemptAt!.difference(before).inMinutes,
+      inInclusiveRange(1, 2),
+    );
+  });
 }

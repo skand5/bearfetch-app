@@ -6,6 +6,36 @@ enum PurchaseResult { purchased, alreadyOwned, insufficientHoney }
 
 enum AuthSessionStatus { signedOut, authenticated, expired }
 
+enum SyncRunStatus { synced, skipped, failed }
+
+class SyncRunResult {
+  const SyncRunResult({
+    required this.status,
+    this.completedEvents = 0,
+    this.message,
+  });
+
+  final SyncRunStatus status;
+  final int completedEvents;
+  final String? message;
+}
+
+enum DeletionTarget { learner, family }
+
+class DeletionRequestState {
+  const DeletionRequestState({
+    required this.status,
+    this.requestId,
+    this.scheduledFor,
+  });
+
+  final String status;
+  final String? requestId;
+  final DateTime? scheduledFor;
+
+  bool get isPending => status == 'pending';
+}
+
 abstract interface class AuthRepository {
   bool get requiresAuthentication;
   bool get hasSession;
@@ -33,6 +63,7 @@ abstract interface class LearnerRepository {
 
 abstract interface class ConsentRepository {
   Future<bool> hasActiveConsent();
+  Future<String> consentStatus();
   Future<void> approveLocalConsent();
 }
 
@@ -65,10 +96,15 @@ abstract interface class ShopRepository {
 abstract interface class SyncRepository {
   Future<int> pendingEventCount();
   Future<String?> lastRecoverableError();
+  Future<SyncRunResult> syncNow();
 }
 
 abstract interface class PrivacyRepository {
   Future<Map<String, Object?>> exportLocalData();
+  Future<void> withdrawConsent();
+  Future<DeletionRequestState> deletionRequestState();
+  Future<DeletionRequestState> scheduleDeletion(DeletionTarget target);
+  Future<void> cancelDeletion(String requestId);
 }
 
 final appDatabaseProvider = Provider<AppDatabase>(

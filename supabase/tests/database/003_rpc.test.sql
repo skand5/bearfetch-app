@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(20);
+select plan(24);
 
 insert into auth.users (id, email, raw_user_meta_data)
 values
@@ -39,6 +39,33 @@ select is(public.purchase_accessory('Galaxy Helm', 'rpc-purchase-3')->>'status',
 
 select is(public.equip_accessory('Star Cap', 'rpc-equip-1')->>'status', 'equipped', 'owned accessory can be equipped');
 select is((select accessory_id from public.equipped_accessories where slot = 'hat'), 'Star Cap', 'equipped state persisted');
+select is(
+  public.schedule_deletion(
+    'learner',
+    'rpc-delete-schedule-1',
+    '55555555-0000-0000-0000-000000000005'::uuid
+  )->>'status',
+  'pending',
+  'learner deletion enters restricted pending state'
+);
+select is(
+  public.schedule_deletion(
+    'learner',
+    'rpc-delete-schedule-1',
+    '55555555-0000-0000-0000-000000000005'::uuid
+  )->>'status',
+  'duplicate_event',
+  'deletion scheduling is idempotent'
+);
+select is(
+  public.cancel_deletion(
+    '55555555-0000-0000-0000-000000000005'::uuid,
+    'rpc-delete-cancel-1'
+  )->>'status',
+  'cancelled',
+  'pending deletion can be cancelled by its parent'
+);
+select is((select access_state from public.parents), 'active', 'cancelling deletion restores active access');
 
 reset role;
 set local role authenticated;
@@ -50,7 +77,7 @@ reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '30000000-0000-0000-0000-000000000003', true);
 
-select is(public.withdraw_consent()->>'status', 'withdrawn', 'consent withdrawal succeeds');
+select is(public.withdraw_consent('rpc-withdraw-1')->>'status', 'withdrawn', 'consent withdrawal succeeds');
 select is((select access_state from public.parents), 'withdrawn', 'withdrawal immediately restricts parent');
 select throws_ok(
   $$ select public.complete_activity('unit-01-02', 'rpc-after-withdrawal') $$,

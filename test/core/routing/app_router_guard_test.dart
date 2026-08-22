@@ -98,9 +98,47 @@ void main() {
       isNull,
     );
   });
+
+  test('withdrawn consent and pending deletion cannot bypass restrictions', () {
+    final withdrawn = _appState(
+      catalog,
+      parentApproved: true,
+      consentStatus: 'withdrawn',
+    );
+    final pending = _appState(
+      catalog,
+      parentApproved: true,
+      pendingDeletion: true,
+    );
+    for (final state in [withdrawn, pending]) {
+      expect(
+        resolveRouteRedirect(
+          requiresAuthentication: true,
+          auth: const AuthFlowState(status: AuthFlowStatus.authenticated),
+          appState: state,
+          path: '/signup/approval',
+        ),
+        startsWith('/access-restricted'),
+      );
+      expect(
+        resolveRouteRedirect(
+          requiresAuthentication: true,
+          auth: const AuthFlowState(status: AuthFlowStatus.authenticated),
+          appState: state,
+          path: '/parent-settings',
+        ),
+        isNull,
+      );
+    }
+  });
 }
 
-AppViewState _appState(CourseCatalog catalog, {required bool parentApproved}) {
+AppViewState _appState(
+  CourseCatalog catalog, {
+  required bool parentApproved,
+  String? consentStatus,
+  bool pendingDeletion = false,
+}) {
   final loading = AppViewState.loading(catalog);
   return AppViewState(
     parentName: 'Parent',
@@ -110,6 +148,8 @@ AppViewState _appState(CourseCatalog catalog, {required bool parentApproved}) {
     ageRange: loading.ageRange,
     language: loading.language,
     parentApproved: parentApproved,
+    consentStatus: consentStatus ?? (parentApproved ? 'active' : 'none'),
+    hasPendingDeletion: pendingDeletion,
     completedActivityIds: loading.completedActivityIds,
     completedSteps: loading.completedSteps,
     nextCourseRoute: loading.nextCourseRoute,

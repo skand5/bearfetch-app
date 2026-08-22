@@ -4030,6 +4030,428 @@ class SyncMetadataCompanion extends UpdateCompanion<SyncMetadataData> {
   }
 }
 
+class $DeletionRequestsTable extends DeletionRequests
+    with TableInfo<$DeletionRequestsTable, DeletionRequest> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DeletionRequestsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _targetMeta = const VerificationMeta('target');
+  @override
+  late final GeneratedColumn<String> target = GeneratedColumn<String>(
+    'target',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _requestedAtMeta = const VerificationMeta(
+    'requestedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> requestedAt = GeneratedColumn<DateTime>(
+    'requested_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _scheduledForMeta = const VerificationMeta(
+    'scheduledFor',
+  );
+  @override
+  late final GeneratedColumn<DateTime> scheduledFor = GeneratedColumn<DateTime>(
+    'scheduled_for',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _cancelledAtMeta = const VerificationMeta(
+    'cancelledAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> cancelledAt = GeneratedColumn<DateTime>(
+    'cancelled_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    target,
+    status,
+    requestedAt,
+    scheduledFor,
+    cancelledAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'deletion_requests';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DeletionRequest> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('target')) {
+      context.handle(
+        _targetMeta,
+        target.isAcceptableOrUnknown(data['target']!, _targetMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_targetMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('requested_at')) {
+      context.handle(
+        _requestedAtMeta,
+        requestedAt.isAcceptableOrUnknown(
+          data['requested_at']!,
+          _requestedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_requestedAtMeta);
+    }
+    if (data.containsKey('scheduled_for')) {
+      context.handle(
+        _scheduledForMeta,
+        scheduledFor.isAcceptableOrUnknown(
+          data['scheduled_for']!,
+          _scheduledForMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_scheduledForMeta);
+    }
+    if (data.containsKey('cancelled_at')) {
+      context.handle(
+        _cancelledAtMeta,
+        cancelledAt.isAcceptableOrUnknown(
+          data['cancelled_at']!,
+          _cancelledAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DeletionRequest map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DeletionRequest(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      target: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}target'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      requestedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}requested_at'],
+      )!,
+      scheduledFor: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}scheduled_for'],
+      )!,
+      cancelledAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}cancelled_at'],
+      ),
+    );
+  }
+
+  @override
+  $DeletionRequestsTable createAlias(String alias) {
+    return $DeletionRequestsTable(attachedDatabase, alias);
+  }
+}
+
+class DeletionRequest extends DataClass implements Insertable<DeletionRequest> {
+  final String id;
+  final String target;
+  final String status;
+  final DateTime requestedAt;
+  final DateTime scheduledFor;
+  final DateTime? cancelledAt;
+  const DeletionRequest({
+    required this.id,
+    required this.target,
+    required this.status,
+    required this.requestedAt,
+    required this.scheduledFor,
+    this.cancelledAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['target'] = Variable<String>(target);
+    map['status'] = Variable<String>(status);
+    map['requested_at'] = Variable<DateTime>(requestedAt);
+    map['scheduled_for'] = Variable<DateTime>(scheduledFor);
+    if (!nullToAbsent || cancelledAt != null) {
+      map['cancelled_at'] = Variable<DateTime>(cancelledAt);
+    }
+    return map;
+  }
+
+  DeletionRequestsCompanion toCompanion(bool nullToAbsent) {
+    return DeletionRequestsCompanion(
+      id: Value(id),
+      target: Value(target),
+      status: Value(status),
+      requestedAt: Value(requestedAt),
+      scheduledFor: Value(scheduledFor),
+      cancelledAt: cancelledAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cancelledAt),
+    );
+  }
+
+  factory DeletionRequest.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DeletionRequest(
+      id: serializer.fromJson<String>(json['id']),
+      target: serializer.fromJson<String>(json['target']),
+      status: serializer.fromJson<String>(json['status']),
+      requestedAt: serializer.fromJson<DateTime>(json['requestedAt']),
+      scheduledFor: serializer.fromJson<DateTime>(json['scheduledFor']),
+      cancelledAt: serializer.fromJson<DateTime?>(json['cancelledAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'target': serializer.toJson<String>(target),
+      'status': serializer.toJson<String>(status),
+      'requestedAt': serializer.toJson<DateTime>(requestedAt),
+      'scheduledFor': serializer.toJson<DateTime>(scheduledFor),
+      'cancelledAt': serializer.toJson<DateTime?>(cancelledAt),
+    };
+  }
+
+  DeletionRequest copyWith({
+    String? id,
+    String? target,
+    String? status,
+    DateTime? requestedAt,
+    DateTime? scheduledFor,
+    Value<DateTime?> cancelledAt = const Value.absent(),
+  }) => DeletionRequest(
+    id: id ?? this.id,
+    target: target ?? this.target,
+    status: status ?? this.status,
+    requestedAt: requestedAt ?? this.requestedAt,
+    scheduledFor: scheduledFor ?? this.scheduledFor,
+    cancelledAt: cancelledAt.present ? cancelledAt.value : this.cancelledAt,
+  );
+  DeletionRequest copyWithCompanion(DeletionRequestsCompanion data) {
+    return DeletionRequest(
+      id: data.id.present ? data.id.value : this.id,
+      target: data.target.present ? data.target.value : this.target,
+      status: data.status.present ? data.status.value : this.status,
+      requestedAt: data.requestedAt.present
+          ? data.requestedAt.value
+          : this.requestedAt,
+      scheduledFor: data.scheduledFor.present
+          ? data.scheduledFor.value
+          : this.scheduledFor,
+      cancelledAt: data.cancelledAt.present
+          ? data.cancelledAt.value
+          : this.cancelledAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DeletionRequest(')
+          ..write('id: $id, ')
+          ..write('target: $target, ')
+          ..write('status: $status, ')
+          ..write('requestedAt: $requestedAt, ')
+          ..write('scheduledFor: $scheduledFor, ')
+          ..write('cancelledAt: $cancelledAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, target, status, requestedAt, scheduledFor, cancelledAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DeletionRequest &&
+          other.id == this.id &&
+          other.target == this.target &&
+          other.status == this.status &&
+          other.requestedAt == this.requestedAt &&
+          other.scheduledFor == this.scheduledFor &&
+          other.cancelledAt == this.cancelledAt);
+}
+
+class DeletionRequestsCompanion extends UpdateCompanion<DeletionRequest> {
+  final Value<String> id;
+  final Value<String> target;
+  final Value<String> status;
+  final Value<DateTime> requestedAt;
+  final Value<DateTime> scheduledFor;
+  final Value<DateTime?> cancelledAt;
+  final Value<int> rowid;
+  const DeletionRequestsCompanion({
+    this.id = const Value.absent(),
+    this.target = const Value.absent(),
+    this.status = const Value.absent(),
+    this.requestedAt = const Value.absent(),
+    this.scheduledFor = const Value.absent(),
+    this.cancelledAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DeletionRequestsCompanion.insert({
+    required String id,
+    required String target,
+    required String status,
+    required DateTime requestedAt,
+    required DateTime scheduledFor,
+    this.cancelledAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       target = Value(target),
+       status = Value(status),
+       requestedAt = Value(requestedAt),
+       scheduledFor = Value(scheduledFor);
+  static Insertable<DeletionRequest> custom({
+    Expression<String>? id,
+    Expression<String>? target,
+    Expression<String>? status,
+    Expression<DateTime>? requestedAt,
+    Expression<DateTime>? scheduledFor,
+    Expression<DateTime>? cancelledAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (target != null) 'target': target,
+      if (status != null) 'status': status,
+      if (requestedAt != null) 'requested_at': requestedAt,
+      if (scheduledFor != null) 'scheduled_for': scheduledFor,
+      if (cancelledAt != null) 'cancelled_at': cancelledAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DeletionRequestsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? target,
+    Value<String>? status,
+    Value<DateTime>? requestedAt,
+    Value<DateTime>? scheduledFor,
+    Value<DateTime?>? cancelledAt,
+    Value<int>? rowid,
+  }) {
+    return DeletionRequestsCompanion(
+      id: id ?? this.id,
+      target: target ?? this.target,
+      status: status ?? this.status,
+      requestedAt: requestedAt ?? this.requestedAt,
+      scheduledFor: scheduledFor ?? this.scheduledFor,
+      cancelledAt: cancelledAt ?? this.cancelledAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (target.present) {
+      map['target'] = Variable<String>(target.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (requestedAt.present) {
+      map['requested_at'] = Variable<DateTime>(requestedAt.value);
+    }
+    if (scheduledFor.present) {
+      map['scheduled_for'] = Variable<DateTime>(scheduledFor.value);
+    }
+    if (cancelledAt.present) {
+      map['cancelled_at'] = Variable<DateTime>(cancelledAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DeletionRequestsCompanion(')
+          ..write('id: $id, ')
+          ..write('target: $target, ')
+          ..write('status: $status, ')
+          ..write('requestedAt: $requestedAt, ')
+          ..write('scheduledFor: $scheduledFor, ')
+          ..write('cancelledAt: $cancelledAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $AppMetadataTable extends AppMetadata
     with TableInfo<$AppMetadataTable, AppMetadataData> {
   @override
@@ -4313,6 +4735,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $EquippedAccessoriesTable(this);
   late final $SyncOutboxTable syncOutbox = $SyncOutboxTable(this);
   late final $SyncMetadataTable syncMetadata = $SyncMetadataTable(this);
+  late final $DeletionRequestsTable deletionRequests = $DeletionRequestsTable(
+    this,
+  );
   late final $AppMetadataTable appMetadata = $AppMetadataTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -4329,6 +4754,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     equippedAccessories,
     syncOutbox,
     syncMetadata,
+    deletionRequests,
     appMetadata,
   ];
 }
@@ -6536,6 +6962,237 @@ typedef $$SyncMetadataTableProcessedTableManager =
       SyncMetadataData,
       PrefetchHooks Function()
     >;
+typedef $$DeletionRequestsTableCreateCompanionBuilder =
+    DeletionRequestsCompanion Function({
+      required String id,
+      required String target,
+      required String status,
+      required DateTime requestedAt,
+      required DateTime scheduledFor,
+      Value<DateTime?> cancelledAt,
+      Value<int> rowid,
+    });
+typedef $$DeletionRequestsTableUpdateCompanionBuilder =
+    DeletionRequestsCompanion Function({
+      Value<String> id,
+      Value<String> target,
+      Value<String> status,
+      Value<DateTime> requestedAt,
+      Value<DateTime> scheduledFor,
+      Value<DateTime?> cancelledAt,
+      Value<int> rowid,
+    });
+
+class $$DeletionRequestsTableFilterComposer
+    extends Composer<_$AppDatabase, $DeletionRequestsTable> {
+  $$DeletionRequestsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get target => $composableBuilder(
+    column: $table.target,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get requestedAt => $composableBuilder(
+    column: $table.requestedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get scheduledFor => $composableBuilder(
+    column: $table.scheduledFor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get cancelledAt => $composableBuilder(
+    column: $table.cancelledAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DeletionRequestsTableOrderingComposer
+    extends Composer<_$AppDatabase, $DeletionRequestsTable> {
+  $$DeletionRequestsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get target => $composableBuilder(
+    column: $table.target,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get requestedAt => $composableBuilder(
+    column: $table.requestedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get scheduledFor => $composableBuilder(
+    column: $table.scheduledFor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get cancelledAt => $composableBuilder(
+    column: $table.cancelledAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DeletionRequestsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DeletionRequestsTable> {
+  $$DeletionRequestsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get target =>
+      $composableBuilder(column: $table.target, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get requestedAt => $composableBuilder(
+    column: $table.requestedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get scheduledFor => $composableBuilder(
+    column: $table.scheduledFor,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get cancelledAt => $composableBuilder(
+    column: $table.cancelledAt,
+    builder: (column) => column,
+  );
+}
+
+class $$DeletionRequestsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DeletionRequestsTable,
+          DeletionRequest,
+          $$DeletionRequestsTableFilterComposer,
+          $$DeletionRequestsTableOrderingComposer,
+          $$DeletionRequestsTableAnnotationComposer,
+          $$DeletionRequestsTableCreateCompanionBuilder,
+          $$DeletionRequestsTableUpdateCompanionBuilder,
+          (
+            DeletionRequest,
+            BaseReferences<
+              _$AppDatabase,
+              $DeletionRequestsTable,
+              DeletionRequest
+            >,
+          ),
+          DeletionRequest,
+          PrefetchHooks Function()
+        > {
+  $$DeletionRequestsTableTableManager(
+    _$AppDatabase db,
+    $DeletionRequestsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DeletionRequestsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DeletionRequestsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DeletionRequestsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> target = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<DateTime> requestedAt = const Value.absent(),
+                Value<DateTime> scheduledFor = const Value.absent(),
+                Value<DateTime?> cancelledAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DeletionRequestsCompanion(
+                id: id,
+                target: target,
+                status: status,
+                requestedAt: requestedAt,
+                scheduledFor: scheduledFor,
+                cancelledAt: cancelledAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String target,
+                required String status,
+                required DateTime requestedAt,
+                required DateTime scheduledFor,
+                Value<DateTime?> cancelledAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DeletionRequestsCompanion.insert(
+                id: id,
+                target: target,
+                status: status,
+                requestedAt: requestedAt,
+                scheduledFor: scheduledFor,
+                cancelledAt: cancelledAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DeletionRequestsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DeletionRequestsTable,
+      DeletionRequest,
+      $$DeletionRequestsTableFilterComposer,
+      $$DeletionRequestsTableOrderingComposer,
+      $$DeletionRequestsTableAnnotationComposer,
+      $$DeletionRequestsTableCreateCompanionBuilder,
+      $$DeletionRequestsTableUpdateCompanionBuilder,
+      (
+        DeletionRequest,
+        BaseReferences<_$AppDatabase, $DeletionRequestsTable, DeletionRequest>,
+      ),
+      DeletionRequest,
+      PrefetchHooks Function()
+    >;
 typedef $$AppMetadataTableCreateCompanionBuilder =
     AppMetadataCompanion Function({
       required String key,
@@ -6722,6 +7379,8 @@ class $AppDatabaseManager {
       $$SyncOutboxTableTableManager(_db, _db.syncOutbox);
   $$SyncMetadataTableTableManager get syncMetadata =>
       $$SyncMetadataTableTableManager(_db, _db.syncMetadata);
+  $$DeletionRequestsTableTableManager get deletionRequests =>
+      $$DeletionRequestsTableTableManager(_db, _db.deletionRequests);
   $$AppMetadataTableTableManager get appMetadata =>
       $$AppMetadataTableTableManager(_db, _db.appMetadata);
 }
