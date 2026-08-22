@@ -48,6 +48,7 @@ app.*.map.json
 # Local environment and service credentials
 .env
 .env.*
+.env.supabase.local
 !.env.example
 **/.env
 **/.env.*
