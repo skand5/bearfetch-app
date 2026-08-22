@@ -8,7 +8,9 @@ import '../../../core/state/auth_state.dart';
 import '../../../core/theme/bearfetch_theme.dart';
 
 class ParentAccountScreen extends ConsumerStatefulWidget {
-  const ParentAccountScreen({super.key});
+  const ParentAccountScreen({super.key, this.isSignIn = false});
+
+  final bool isSignIn;
 
   @override
   ConsumerState<ParentAccountScreen> createState() =>
@@ -44,7 +46,7 @@ class _ParentAccountScreenState extends ConsumerState<ParentAccountScreen> {
     final email = _contactController.text.trim();
     final isEmail = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
 
-    if (name.length < 2) {
+    if (!widget.isSignIn && name.length < 2) {
       _showValidationMessage('Enter your name.');
       return;
     }
@@ -53,7 +55,9 @@ class _ParentAccountScreenState extends ConsumerState<ParentAccountScreen> {
       return;
     }
     try {
-      await ref.read(appStateControllerProvider.notifier).setParentName(name);
+      if (!widget.isSignIn) {
+        await ref.read(appStateControllerProvider.notifier).setParentName(name);
+      }
       await ref.read(authFlowControllerProvider.notifier).requestOtp(email);
       if (mounted) context.go('/signup/verify');
     } catch (_) {
@@ -100,13 +104,14 @@ class _ParentAccountScreenState extends ConsumerState<ParentAccountScreen> {
                   child: SizedBox.fromSize(
                     size: _designSize,
                     child: _ParentAccountArtboard(
+                      isSignIn: widget.isSignIn,
                       nameController: _nameController,
                       contactController: _contactController,
                       onBack: () => context.pop(),
                       onSendOtp: _sendOtp,
-                      onSignIn: () => _showValidationMessage(
-                        'Enter your account email to receive a sign-in code.',
-                      ),
+                      onSignIn: () =>
+                          context.go('/signup/account?mode=sign-in'),
+                      onCreateAccount: () => context.go('/signup/account'),
                     ),
                   ),
                 ),
@@ -121,18 +126,22 @@ class _ParentAccountScreenState extends ConsumerState<ParentAccountScreen> {
 
 class _ParentAccountArtboard extends StatelessWidget {
   const _ParentAccountArtboard({
+    required this.isSignIn,
     required this.nameController,
     required this.contactController,
     required this.onBack,
     required this.onSendOtp,
     required this.onSignIn,
+    required this.onCreateAccount,
   });
 
+  final bool isSignIn;
   final TextEditingController nameController;
   final TextEditingController contactController;
   final VoidCallback onBack;
   final VoidCallback onSendOtp;
   final VoidCallback onSignIn;
+  final VoidCallback onCreateAccount;
 
   @override
   Widget build(BuildContext context) => Stack(
@@ -150,43 +159,279 @@ class _ParentAccountArtboard extends StatelessWidget {
         height: 48,
         child: _TransparentHitTarget(semanticLabel: 'Go back', onTap: onBack),
       ),
-      _ArtboardField(
-        top: 359,
-        semanticLabel: 'Parent name',
-        controller: nameController,
-        keyboardType: TextInputType.name,
-        textCapitalization: TextCapitalization.words,
-        textInputAction: TextInputAction.next,
-        autofillHints: const [AutofillHints.name],
+      if (isSignIn)
+        _ReturningParentAccountOverlay(
+          controller: contactController,
+          onBack: onBack,
+          onSendOtp: onSendOtp,
+          onCreateAccount: onCreateAccount,
+        )
+      else ...[
+        _ArtboardField(
+          top: 359,
+          semanticLabel: 'Parent name',
+          controller: nameController,
+          keyboardType: TextInputType.name,
+          textCapitalization: TextCapitalization.words,
+          textInputAction: TextInputAction.next,
+          autofillHints: const [AutofillHints.name],
+        ),
+        _ArtboardField(
+          top: 457,
+          semanticLabel: 'Email address',
+          controller: contactController,
+          keyboardType: TextInputType.emailAddress,
+          textCapitalization: TextCapitalization.none,
+          textInputAction: TextInputAction.done,
+          autofillHints: const [AutofillHints.email],
+          onSubmitted: (_) => onSendOtp(),
+        ),
+        Positioned(
+          left: 19,
+          top: 710,
+          width: 352,
+          height: 70,
+          child: _TransparentHitTarget(
+            semanticLabel: 'Send OTP',
+            onTap: onSendOtp,
+          ),
+        ),
+        Positioned(
+          left: 76,
+          top: 780,
+          width: 238,
+          height: 48,
+          child: _TransparentHitTarget(
+            semanticLabel: 'Already have an account? Sign in',
+            onTap: onSignIn,
+          ),
+        ),
+      ],
+    ],
+  );
+}
+
+class _ReturningParentAccountOverlay extends StatelessWidget {
+  const _ReturningParentAccountOverlay({
+    required this.controller,
+    required this.onBack,
+    required this.onSendOtp,
+    required this.onCreateAccount,
+  });
+
+  final TextEditingController controller;
+  final VoidCallback onBack;
+  final VoidCallback onSendOtp;
+  final VoidCallback onCreateAccount;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    children: [
+      // Replace creation-only copy and fields while retaining the approved
+      // artboard background and illustration.
+      const Positioned(
+        left: 18,
+        top: 116,
+        width: 154,
+        height: 28,
+        child: ColoredBox(color: Color(0xFFFFF8EF)),
       ),
-      _ArtboardField(
-        top: 457,
-        semanticLabel: 'Email address',
-        controller: contactController,
-        keyboardType: TextInputType.emailAddress,
-        textCapitalization: TextCapitalization.none,
-        textInputAction: TextInputAction.done,
-        autofillHints: const [AutofillHints.email],
-        onSubmitted: (_) => onSendOtp(),
+      const Positioned(
+        left: 21,
+        top: 120,
+        child: Text(
+          'Account sign in',
+          style: TextStyle(
+            fontFamily: 'Nunito',
+            fontSize: 12,
+            color: Color(0xFFA77038),
+          ),
+        ),
+      ),
+      Positioned(
+        left: 18,
+        top: 152,
+        width: 238,
+        height: 166,
+        child: ColoredBox(
+          color: const Color(0xFFFFF8EF),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Welcome back',
+                style: TextStyle(
+                  fontFamily: 'Fredoka',
+                  fontSize: 28,
+                  height: 1.15,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF482C23),
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Sign in to your BearFetch family account.',
+                style: TextStyle(
+                  fontFamily: 'Nunito',
+                  fontSize: 16,
+                  height: 1.35,
+                  color: Color(0xFF805333),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      Positioned(
+        left: 18,
+        top: 330,
+        width: 354,
+        height: 300,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFFCF8),
+            border: Border.all(color: const Color(0xFFECE5DD), width: 2),
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(26, 30, 26, 22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Parent email',
+                  style: TextStyle(
+                    fontFamily: 'Nunito',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF633B21),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Semantics(
+                  label: 'Email address',
+                  textField: true,
+                  child: TextField(
+                    controller: controller,
+                    keyboardType: TextInputType.emailAddress,
+                    textCapitalization: TextCapitalization.none,
+                    textInputAction: TextInputAction.done,
+                    autofillHints: const [AutofillHints.email],
+                    onSubmitted: (_) => onSendOtp(),
+                    cursorColor: BearfetchColors.orange,
+                    style: const TextStyle(
+                      fontFamily: 'Nunito',
+                      fontSize: 16,
+                      color: BearfetchColors.bodyBrown,
+                    ),
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(
+                        Icons.mail_outline_rounded,
+                        color: Color(0xFFA77038),
+                      ),
+                      hintText: 'Enter your email',
+                      hintStyle: const TextStyle(color: Color(0xFFA2907D)),
+                      filled: true,
+                      fillColor: const Color(0xFFF5EBD8),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 17),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(17),
+                        borderSide: const BorderSide(
+                          color: Color(0xFFE1D2BA),
+                          width: 2,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(17),
+                        borderSide: const BorderSide(
+                          color: BearfetchColors.orange,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Color(0xFFEAF4FF),
+                    borderRadius: BorderRadius.all(Radius.circular(14)),
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.all(13),
+                    child: Text(
+                      'We will send a six-digit sign-in code to this email.',
+                      style: TextStyle(
+                        fontFamily: 'Nunito',
+                        fontSize: 13,
+                        height: 1.35,
+                        color: Color(0xFF38638E),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
       Positioned(
         left: 19,
         top: 710,
         width: 352,
-        height: 70,
-        child: _TransparentHitTarget(
-          semanticLabel: 'Send OTP',
-          onTap: onSendOtp,
+        height: 64,
+        child: ElevatedButton.icon(
+          onPressed: onSendOtp,
+          icon: const Icon(Icons.lock_outline_rounded, size: 21),
+          label: const Text('Send sign-in code'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: BearfetchColors.orange,
+            foregroundColor: Colors.white,
+            elevation: 3,
+            shadowColor: BearfetchColors.orangeDark,
+            shape: const StadiumBorder(),
+            textStyle: const TextStyle(
+              fontFamily: 'Fredoka',
+              fontSize: 19,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ),
       ),
       Positioned(
-        left: 76,
-        top: 780,
-        width: 238,
-        height: 48,
-        child: _TransparentHitTarget(
-          semanticLabel: 'Already have an account? Sign in',
-          onTap: onSignIn,
+        left: 18,
+        top: 778,
+        width: 354,
+        height: 50,
+        child: const ColoredBox(color: Color(0xFFFFF8EF)),
+      ),
+      Positioned(
+        left: 58,
+        top: 782,
+        width: 274,
+        height: 44,
+        child: TextButton(
+          onPressed: onCreateAccount,
+          child: const Text.rich(
+            TextSpan(
+              text: 'New to BearFetch? ',
+              style: TextStyle(
+                fontFamily: 'Nunito',
+                color: Color(0xFF805333),
+                fontSize: 15,
+              ),
+              children: [
+                TextSpan(
+                  text: 'Create account',
+                  style: TextStyle(
+                    color: BearfetchColors.orange,
+                    fontWeight: FontWeight.w800,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     ],

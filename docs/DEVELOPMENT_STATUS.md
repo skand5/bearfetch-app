@@ -25,6 +25,18 @@ This is the canonical completion and pending-work record for the BearFetch app. 
 
 Visual acceptance remains the current Flutter UI and approved Figma screenshots. Any future wiring must preserve accepted dimensions, typography, spacing, artwork, and interaction states.
 
+### Parent-only sign-in correction
+
+- The onboarding **Sign in** action opens the parent account screen in an
+  explicit returning-parent mode; it no longer bypasses credentials and routes
+  directly to Home in local builds.
+- Returning parents enter their account email only and receive a six-digit
+  email sign-in code. New family account creation continues to require the
+  parent name and email.
+- Learners, including learners aged 12+, do not receive independent email or
+  mobile authentication. Any future independent teen-account proposal requires
+  a separate approved privacy, consent, authentication, and legal scope.
+
 ### Section 1 — Repository and release foundation
 
 - Git repository initialized and current UI baseline committed.

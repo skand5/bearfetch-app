@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/bearfetch_theme.dart';
-import '../../../domain/repositories/app_repositories.dart';
 
-class OnboardingScreen extends ConsumerWidget {
+class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: BearfetchColors.cream,
       body: _OnboardingCanvas(
@@ -44,11 +42,7 @@ class OnboardingScreen extends ConsumerWidget {
                 const SizedBox(height: 14),
                 _SecondaryButton(
                   label: 'Sign in',
-                  onPressed: () => context.go(
-                    ref.read(authRepositoryProvider).requiresAuthentication
-                        ? '/signup/account'
-                        : '/home-started',
-                  ),
+                  onPressed: () => context.go('/signup/account?mode=sign-in'),
                 ),
                 const SizedBox(height: 16),
                 const Row(

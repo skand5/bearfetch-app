@@ -94,7 +94,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/signup/account',
-        builder: (context, state) => const ParentAccountScreen(),
+        builder: (context, state) => ParentAccountScreen(
+          isSignIn: state.uri.queryParameters['mode'] == 'sign-in',
+        ),
       ),
       GoRoute(
         path: '/signup/verify',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:bearfetch_app/features/course/presentation/course_activity_screen.dart';
 import 'package:bearfetch_app/features/course/presentation/activity_result_screen.dart';
 import 'package:bearfetch_app/features/course/presentation/course_completion_screen.dart';
@@ -83,7 +84,7 @@ void main() {
     expect(find.text('Meet AI Chatbots'), findsWidgets);
   });
 
-  testWidgets('native shell tabs and first activity route work', (
+  testWidgets('returning parent sign-in requests only an email code', (
     tester,
   ) async {
     await tester.pumpWidget(harness.wrap(const BearfetchApp()));
@@ -91,6 +92,23 @@ void main() {
     final signIn = find.bySemanticsLabel('Sign in');
     await tester.ensureVisible(signIn);
     await tester.tap(signIn);
+    await tester.pumpAndSettle();
+    expect(find.text('Welcome back'), findsOneWidget);
+    expect(find.bySemanticsLabel('Parent name'), findsNothing);
+    expect(find.bySemanticsLabel('Email address'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'parent@example.com');
+    await tester.tap(find.bySemanticsLabel('Send sign-in code'));
+    await tester.pumpAndSettle();
+    expect(find.text('Verify your contact'), findsOneWidget);
+  });
+
+  testWidgets('native shell tabs and first activity route work', (
+    tester,
+  ) async {
+    await tester.pumpWidget(harness.wrap(const BearfetchApp()));
+
+    GoRouter.of(tester.element(find.byType(Scaffold).first)).go('/home');
     await tester.pumpAndSettle();
     expect(find.text('Meet AI Chatbots'), findsWidgets);
 
