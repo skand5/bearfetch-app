@@ -243,8 +243,10 @@ These items are intentionally postponed, not complete and not removed from scope
   `quality-and-android` and `secret-scan` successfully. The Android job passed
   formatting, analysis, tests, Drift generation, debug APK build, and artifact
   upload.
-- Configure branch protection only after the runner has completed a successful
-  CI run, otherwise it can block all merges.
+- User decision: remain on the free private GitHub plan. GitHub rulesets are
+  not enforced for this repository without an organization upgrade, so branch
+  protection is intentionally not configured. The successful self-hosted CI
+  checks remain advisory and must be reviewed before each merge/release.
 - Add CI-only secrets listed in `docs/SETUP.md`.
 - Verify CI, secret scanning, Android release build, and later iOS archive jobs.
 
