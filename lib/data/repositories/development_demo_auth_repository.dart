@@ -7,9 +7,14 @@ import '../../domain/repositories/app_repositories.dart';
 /// It is selected by bootstrap only for `APP_ENV=development`, has no network
 /// implementation, and must never be used by a production build.
 class DevelopmentDemoAuthRepository implements AuthRepository {
+  DevelopmentDemoAuthRepository({
+    required Future<void> Function() resetDemoState,
+  }) : _resetDemoState = resetDemoState;
+
   static const demoUserId = 'development-demo-parent';
   static const demoEmail = 'demo.parent@bearfetch.invalid';
 
+  final Future<void> Function() _resetDemoState;
   final _changes = StreamController<AuthSessionStatus>.broadcast();
   bool _hasSession = false;
 
@@ -42,6 +47,7 @@ class DevelopmentDemoAuthRepository implements AuthRepository {
 
   @override
   Future<void> signInDemo() async {
+    await _resetDemoState();
     _hasSession = true;
     _changes.add(AuthSessionStatus.authenticated);
   }

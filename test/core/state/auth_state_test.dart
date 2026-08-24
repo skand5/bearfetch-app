@@ -68,7 +68,10 @@ void main() {
   test(
     'development demo login creates a local authenticated session',
     () async {
-      final repository = DevelopmentDemoAuthRepository();
+      var resetCount = 0;
+      final repository = DevelopmentDemoAuthRepository(
+        resetDemoState: () async => resetCount++,
+      );
       final container = ProviderContainer(
         overrides: [authRepositoryProvider.overrideWithValue(repository)],
       );
@@ -78,6 +81,7 @@ void main() {
       await container.read(authFlowControllerProvider.notifier).signInDemo();
 
       expect(repository.hasSession, isTrue);
+      expect(resetCount, 1);
       expect(repository.currentEmail, 'demo.parent@bearfetch.invalid');
       expect(
         container.read(authFlowControllerProvider).valueOrNull?.status,

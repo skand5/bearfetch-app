@@ -9,7 +9,7 @@ import '../local/app_database.dart';
 const _localParentId = 'local-parent';
 const _localLearnerId = 'local-learner';
 const _seedVersionKey = 'development-seed-version';
-const _seedVersion = '1';
+const _seedVersion = '2';
 
 class LocalAppRepository
     implements
@@ -66,75 +66,27 @@ class LocalAppRepository
       final seed = await (database.select(
         database.appMetadata,
       )..where((row) => row.key.equals(_seedVersionKey))).getSingleOrNull();
-      if (seed != null) return;
+      if (seed != null) {
+        if (!development || seed.value == _seedVersion) return;
+        await _clearDevelopmentDemoData();
+        final now = DateTime.now();
+        await _createFreshDevelopmentFamily(now);
+        await (database.update(
+          database.appMetadata,
+        )..where((row) => row.key.equals(_seedVersionKey))).write(
+          AppMetadataCompanion(
+            value: Value(_seedVersion),
+            updatedAt: Value(now),
+          ),
+        );
+        return;
+      }
       final now = DateTime.now();
       final existingLearner = await (database.select(
         database.learnerProfiles,
       )..limit(1)).getSingleOrNull();
       if (development && existingLearner == null) {
-        await database
-            .into(database.parentProfiles)
-            .insert(
-              ParentProfilesCompanion.insert(
-                id: _localParentId,
-                displayName: 'Parent',
-                createdAt: now,
-                updatedAt: now,
-              ),
-            );
-        await database
-            .into(database.learnerProfiles)
-            .insert(
-              LearnerProfilesCompanion.insert(
-                id: _localLearnerId,
-                parentId: _localParentId,
-                nickname: 'Max',
-                avatarId: 'astronaut-bear',
-                ageBand: '6–11 yr',
-                language: 'English',
-                createdAt: now,
-                updatedAt: now,
-              ),
-            );
-        await _insertReward(
-          learnerId: _localLearnerId,
-          kind: 'xp',
-          amount: 340,
-          reasonType: 'development_seed',
-          reasonId: _seedVersion,
-          idempotencyKey: 'seed:xp:$_seedVersion',
-          occurredAt: now,
-        );
-        await _insertReward(
-          learnerId: _localLearnerId,
-          kind: 'honey',
-          amount: 128,
-          reasonType: 'development_seed',
-          reasonId: _seedVersion,
-          idempotencyKey: 'seed:honey:$_seedVersion',
-          occurredAt: now,
-        );
-        for (final accessory in const ['Moon Glasses', 'Rocket Pack']) {
-          await database
-              .into(database.ownedAccessories)
-              .insert(
-                OwnedAccessoriesCompanion.insert(
-                  learnerId: _localLearnerId,
-                  accessoryId: accessory,
-                  purchasedAt: now,
-                ),
-              );
-        }
-        await database
-            .into(database.equippedAccessories)
-            .insert(
-              EquippedAccessoriesCompanion.insert(
-                learnerId: _localLearnerId,
-                slot: 'featured',
-                accessoryId: 'Rocket Pack',
-                equippedAt: now,
-              ),
-            );
+        await _createFreshDevelopmentFamily(now);
       }
       await database
           .into(database.appMetadata)
@@ -146,6 +98,56 @@ class LocalAppRepository
             ),
           );
     });
+  }
+
+  /// Restores the development demo to the beginning of the course.
+  ///
+  /// This deliberately has no remote equivalent. It is called only by the
+  /// development-only demo authentication repository before each demo sign-in.
+  Future<void> resetDevelopmentDemo() => database.transaction(() async {
+    await _clearDevelopmentDemoData();
+    await _createFreshDevelopmentFamily(DateTime.now());
+  });
+
+  Future<void> _clearDevelopmentDemoData() async {
+    await database.delete(database.syncOutbox).go();
+    await database.delete(database.syncMetadata).go();
+    await database.delete(database.deletionRequests).go();
+    await database.delete(database.equippedAccessories).go();
+    await database.delete(database.ownedAccessories).go();
+    await database.delete(database.achievements).go();
+    await database.delete(database.rewardTransactions).go();
+    await database.delete(database.activityProgress).go();
+    await database.delete(database.consentRecords).go();
+    await database.delete(database.learnerProfiles).go();
+    await database.delete(database.parentProfiles).go();
+  }
+
+  Future<void> _createFreshDevelopmentFamily(DateTime now) async {
+    await database
+        .into(database.parentProfiles)
+        .insert(
+          ParentProfilesCompanion.insert(
+            id: _localParentId,
+            displayName: 'Parent',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    await database
+        .into(database.learnerProfiles)
+        .insert(
+          LearnerProfilesCompanion.insert(
+            id: _localLearnerId,
+            parentId: _localParentId,
+            nickname: 'Max',
+            avatarId: 'astronaut-bear',
+            ageBand: '6–11 yr',
+            language: 'English',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
   }
 
   @override

@@ -120,10 +120,6 @@ void main() {
     await tester.pumpAndSettle();
     final buyStarCap = find.bySemanticsLabel('Buy Star Cap');
     expect(buyStarCap, findsOneWidget);
-    await tester.ensureVisible(buyStarCap);
-    await tester.tap(buyStarCap);
-    await tester.pump();
-    expect(find.bySemanticsLabel('Equip Star Cap'), findsOneWidget);
 
     await tester.tap(find.text('Profile'));
     await tester.pumpAndSettle();

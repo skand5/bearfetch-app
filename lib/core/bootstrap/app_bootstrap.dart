@@ -67,7 +67,9 @@ Future<BootstrapDependencies> createBootstrapDependencies() async {
       database: database,
       repository: repository,
       authRepository: isDevelopment
-          ? DevelopmentDemoAuthRepository()
+          ? DevelopmentDemoAuthRepository(
+              resetDemoState: repository.resetDevelopmentDemo,
+            )
           : client == null
           ? repository
           : SupabaseAuthRepository(client),

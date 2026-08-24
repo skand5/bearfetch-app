@@ -19,19 +19,14 @@ void main() {
   tearDown(() => database.close());
 
   test(
-    'development fixture seeds once with approved prototype values',
+    'development fixture creates a fresh course with no rewards or accessories',
     () async {
       await repository.ensureSeeded(development: true);
       expect((await repository.getLearner())?.nickname, 'Max');
-      expect(await repository.balance('xp'), 340);
-      expect(await repository.balance('honey'), 128);
-      expect(await repository.ownedAccessoryIds(), {
-        'Moon Glasses',
-        'Rocket Pack',
-      });
-      expect(await repository.equippedAccessories(), {
-        'featured': 'Rocket Pack',
-      });
+      expect(await repository.balance('xp'), 0);
+      expect(await repository.balance('honey'), 0);
+      expect(await repository.ownedAccessoryIds(), isEmpty);
+      expect(await repository.equippedAccessories(), isEmpty);
     },
   );
 
@@ -76,8 +71,8 @@ void main() {
       isFalse,
     );
     expect(await repository.completedActivityIds(), {'unit-01-01'});
-    expect(await repository.balance('xp'), 350);
-    expect(await repository.balance('honey'), 133);
+    expect(await repository.balance('xp'), 10);
+    expect(await repository.balance('honey'), 5);
     expect(await repository.pendingEventCount(), 1);
   });
 
@@ -109,16 +104,22 @@ void main() {
       await repository.equip(accessoryId: 'Galaxy Helm', slot: 'featured'),
       isFalse,
     );
+    for (var index = 0; index < 5; index++) {
+      await repository.completeActivity(
+        activityId: 'purchase-seed-$index',
+        rewardId: 'purchase-seed-$index',
+      );
+    }
     expect(
       await repository.purchase(accessoryId: 'Star Cap', price: 25),
       PurchaseResult.purchased,
     );
-    expect(await repository.balance('honey'), 103);
+    expect(await repository.balance('honey'), 0);
     expect(
       await repository.purchase(accessoryId: 'Star Cap', price: 25),
       PurchaseResult.alreadyOwned,
     );
-    expect(await repository.balance('honey'), 103);
+    expect(await repository.balance('honey'), 0);
     expect(
       await repository.equip(accessoryId: 'Star Cap', slot: 'featured'),
       isTrue,
@@ -131,7 +132,7 @@ void main() {
       await repository.purchase(accessoryId: 'Galaxy Helm', price: 180),
       PurchaseResult.insufficientHoney,
     );
-    expect(await repository.balance('honey'), 128);
+    expect(await repository.balance('honey'), 0);
     expect(
       await repository.ownedAccessoryIds(),
       isNot(contains('Galaxy Helm')),
@@ -141,8 +142,8 @@ void main() {
   test('course rewards and achievements are idempotent', () async {
     expect(await repository.completeCourse('course-ai-01-complete'), isTrue);
     expect(await repository.completeCourse('course-ai-01-complete'), isFalse);
-    expect(await repository.balance('xp'), 440);
-    expect(await repository.balance('honey'), 178);
+    expect(await repository.balance('xp'), 100);
+    expect(await repository.balance('honey'), 50);
     expect(await repository.achievementIds(), {
       'ai-explorer-badge',
       'llm-starter-certificate',
@@ -203,5 +204,29 @@ void main() {
       failed.nextAttemptAt!.difference(before).inMinutes,
       inInclusiveRange(1, 2),
     );
+  });
+
+  test('development demo reset removes local course and shop state', () async {
+    await repository.recordRetry('unit-01-02');
+    await repository.completeActivity(
+      activityId: 'unit-01-01',
+      rewardId: 'activity-unit-01-01',
+    );
+    await repository.completeCourse('course-ai-01-complete');
+    await repository.purchase(accessoryId: 'Star Cap', price: 25);
+    await repository.approveLocalConsent();
+
+    await repository.resetDevelopmentDemo();
+
+    expect((await repository.getLearner())?.nickname, 'Max');
+    expect(await repository.completedActivityIds(), isEmpty);
+    expect(await repository.retryCounts(), isEmpty);
+    expect(await repository.balance('xp'), 0);
+    expect(await repository.balance('honey'), 0);
+    expect(await repository.achievementIds(), isEmpty);
+    expect(await repository.ownedAccessoryIds(), isEmpty);
+    expect(await repository.equippedAccessories(), isEmpty);
+    expect(await repository.pendingEventCount(), 0);
+    expect(await repository.consentStatus(), 'none');
   });
 }

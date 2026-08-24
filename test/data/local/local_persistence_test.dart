@@ -27,6 +27,12 @@ void main() {
         activityId: 'unit-01-01',
         rewardId: 'activity-unit-01-01',
       );
+      for (var index = 1; index < 5; index++) {
+        await repository.completeActivity(
+          activityId: 'purchase-seed-$index',
+          rewardId: 'purchase-seed-$index',
+        );
+      }
       await repository.purchase(accessoryId: 'Star Cap', price: 25);
       await repository.equip(accessoryId: 'Star Cap', slot: 'featured');
       await database.close();
@@ -37,9 +43,15 @@ void main() {
       await repository.ensureSeeded(development: true);
 
       expect((await repository.getLearner())?.nickname, 'Maya');
-      expect(await repository.completedActivityIds(), {'unit-01-01'});
-      expect(await repository.balance('xp'), 350);
-      expect(await repository.balance('honey'), 108);
+      expect(await repository.completedActivityIds(), {
+        'unit-01-01',
+        'purchase-seed-1',
+        'purchase-seed-2',
+        'purchase-seed-3',
+        'purchase-seed-4',
+      });
+      expect(await repository.balance('xp'), 50);
+      expect(await repository.balance('honey'), 0);
       expect(await repository.ownedAccessoryIds(), contains('Star Cap'));
       expect(await repository.equippedAccessories(), {'featured': 'Star Cap'});
     },
