@@ -2180,35 +2180,40 @@ class _LessonArtworkSlice extends StatelessWidget {
   final bool visible;
 
   @override
-  Widget build(BuildContext context) => Positioned(
-    left: 0,
-    top: top,
-    width: 390,
-    height: height,
-    child: AnimatedOpacity(
-      opacity: visible ? 1 : 0,
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOut,
-      child: ClipRect(
-        child: Stack(
-          children: [
-            Positioned(
-              left: 0,
-              top: -top,
-              width: 390,
-              height: 1200,
-              child: Image.asset(
-                'assets/illustrations/unit_01_01.png',
-                fit: BoxFit.fill,
-                filterQuality: FilterQuality.high,
-                excludeFromSemantics: true,
+  Widget build(BuildContext context) {
+    // Include the anti-aliased top border in the clipped source image. Without
+    // this small bleed, FittedBox scaling cuts the top stroke while revealing.
+    final sliceTop = top - 4;
+    return Positioned(
+      left: 0,
+      top: sliceTop,
+      width: 390,
+      height: height + 4,
+      child: AnimatedOpacity(
+        opacity: visible ? 1 : 0,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+        child: ClipRect(
+          child: Stack(
+            children: [
+              Positioned(
+                left: 0,
+                top: -sliceTop,
+                width: 390,
+                height: 1200,
+                child: Image.asset(
+                  'assets/illustrations/unit_01_01.png',
+                  fit: BoxFit.fill,
+                  filterQuality: FilterQuality.high,
+                  excludeFromSemantics: true,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _ArtworkCheckmark extends StatelessWidget {
