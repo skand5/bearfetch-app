@@ -90,6 +90,23 @@ class AuthFlowController extends AsyncNotifier<AuthFlowState> {
     }
   }
 
+  Future<void> signInDemo() async {
+    final repository = ref.read(authRepositoryProvider);
+    if (!repository.supportsDemoLogin) {
+      throw UnsupportedError('Demo login is not available.');
+    }
+    state = const AsyncLoading<AuthFlowState>().copyWithPrevious(state);
+    try {
+      await repository.signInDemo();
+      state = const AsyncData(
+        AuthFlowState(status: AuthFlowStatus.authenticated, pendingEmail: null),
+      );
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      rethrow;
+    }
+  }
+
   Future<void> resendOtp() async {
     final email = state.valueOrNull?.pendingEmail;
     if (email == null) throw StateError('Enter your email again.');

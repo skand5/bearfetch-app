@@ -14,7 +14,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   AppConfig.validate();
   await initializeSentry(() async {
-    if (AppConfig.hasSupabaseConfiguration) {
+    if (AppConfig.environment == AppEnvironment.production &&
+        AppConfig.hasSupabaseConfiguration) {
       await Supabase.initialize(
         url: AppConfig.supabaseUrl,
         publishableKey: AppConfig.supabaseAnonKey,

@@ -83,6 +83,10 @@ Visual acceptance remains the current Flutter UI and approved Figma screenshots.
 - Course completion awards `+100 XP`, `+50 honey`, AI Explorer badge, and LLM Starter certificate once.
 - Purchases are transactional and idempotent; only owned accessories can be equipped.
 - Development first-install fixture seeds Max, 340 XP, 128 honey, Moon Glasses, and Rocket Pack once.
+- Development builds include a clearly labelled local **Use demo account** action.
+  It creates no remote user, sends no OTP, performs no Supabase request, and
+  enters the seeded parent/learner experience only. It is unavailable in
+  production builds, which continue to require parent email OTP.
 - Production starts unconfigured with zero rewards and no accessories.
 - Startup-state contracts cover loading, content validation failure, local migration failure, recoverable sync warning, and later expired-session handling.
 - Persistent restart behavior verified on Android emulator.

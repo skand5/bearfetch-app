@@ -22,6 +22,9 @@ class FakeAuthRepository implements AuthRepository {
   bool get requiresAuthentication => true;
 
   @override
+  bool get supportsDemoLogin => false;
+
+  @override
   String? get currentUserId => _authenticated ? 'test-user' : null;
 
   @override
@@ -44,6 +47,10 @@ class FakeAuthRepository implements AuthRepository {
     verifiedToken = token;
     _authenticated = true;
   }
+
+  @override
+  Future<void> signInDemo() =>
+      Future.error(UnsupportedError('Demo login is not enabled in this test.'));
 
   @override
   Future<void> signOut() async {

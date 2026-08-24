@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/local/app_database.dart';
+import '../../data/repositories/development_demo_auth_repository.dart';
 import '../../data/repositories/local_app_repository.dart';
 import '../../data/repositories/supabase_repositories.dart';
 import '../../domain/content/course_catalog.dart';
@@ -56,26 +57,27 @@ Future<BootstrapDependencies> createBootstrapDependencies() async {
   final database = AppDatabase();
   final repository = LocalAppRepository(database);
   try {
-    await repository.ensureSeeded(
-      development: AppConfig.environment == AppEnvironment.development,
-    );
+    final isDevelopment = AppConfig.environment == AppEnvironment.development;
+    await repository.ensureSeeded(development: isDevelopment);
     final syncWarning = await repository.lastRecoverableError();
-    final client = AppConfig.hasSupabaseConfiguration
+    final client = !isDevelopment && AppConfig.hasSupabaseConfiguration
         ? Supabase.instance.client
         : null;
     return BootstrapDependencies(
       database: database,
       repository: repository,
-      authRepository: client == null
+      authRepository: isDevelopment
+          ? DevelopmentDemoAuthRepository()
+          : client == null
           ? repository
           : SupabaseAuthRepository(client),
-      parentRepository: client == null
+      parentRepository: isDevelopment || client == null
           ? repository
           : SupabaseParentRepository(repository, client),
-      learnerRepository: client == null
+      learnerRepository: isDevelopment || client == null
           ? repository
           : SupabaseLearnerRepository(repository, client),
-      consentRepository: client == null
+      consentRepository: isDevelopment || client == null
           ? repository
           : SupabaseConsentRepository(repository, client),
       catalog: catalog,
@@ -105,7 +107,8 @@ List<Override> bootstrapOverrides(BootstrapDependencies dependencies) => [
   rewardsRepositoryProvider.overrideWithValue(dependencies.repository),
   shopRepositoryProvider.overrideWithValue(dependencies.repository),
   syncRepositoryProvider.overrideWithValue(
-    AppConfig.hasSupabaseConfiguration
+    AppConfig.environment == AppEnvironment.production &&
+            AppConfig.hasSupabaseConfiguration
         ? SupabaseSyncRepository(
             dependencies.repository,
             Supabase.instance.client,
@@ -114,7 +117,8 @@ List<Override> bootstrapOverrides(BootstrapDependencies dependencies) => [
         : dependencies.repository,
   ),
   privacyRepositoryProvider.overrideWithValue(
-    AppConfig.hasSupabaseConfiguration
+    AppConfig.environment == AppEnvironment.production &&
+            AppConfig.hasSupabaseConfiguration
         ? SupabasePrivacyRepository(
             dependencies.repository,
             Supabase.instance.client,

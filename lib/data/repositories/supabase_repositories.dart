@@ -15,6 +15,9 @@ class SupabaseAuthRepository implements AuthRepository {
   bool get requiresAuthentication => true;
 
   @override
+  bool get supportsDemoLogin => false;
+
+  @override
   bool get hasSession => client.auth.currentSession != null;
 
   @override
@@ -53,6 +56,10 @@ class SupabaseAuthRepository implements AuthRepository {
       throw const AuthException('OTP verification did not create a session.');
     }
   }
+
+  @override
+  Future<void> signInDemo() =>
+      Future.error(UnsupportedError('Demo login is not available.'));
 
   @override
   Future<void> signOut() => client.auth.signOut(scope: SignOutScope.local);

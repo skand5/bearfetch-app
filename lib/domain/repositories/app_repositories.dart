@@ -38,12 +38,14 @@ class DeletionRequestState {
 
 abstract interface class AuthRepository {
   bool get requiresAuthentication;
+  bool get supportsDemoLogin;
   bool get hasSession;
   String? get currentUserId;
   String? get currentEmail;
   Stream<AuthSessionStatus> get sessionChanges;
   Future<void> requestEmailOtp(String email);
   Future<void> verifyEmailOtp({required String email, required String token});
+  Future<void> signInDemo();
   Future<void> signOut();
 }
 

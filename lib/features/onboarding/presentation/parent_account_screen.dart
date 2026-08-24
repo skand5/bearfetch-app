@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/state/app_state.dart';
 import '../../../core/state/auth_state.dart';
 import '../../../core/theme/bearfetch_theme.dart';
+import '../../../domain/repositories/app_repositories.dart';
 
 class ParentAccountScreen extends ConsumerStatefulWidget {
   const ParentAccountScreen({super.key, this.isSignIn = false});
@@ -69,6 +70,18 @@ class _ParentAccountScreenState extends ConsumerState<ParentAccountScreen> {
     }
   }
 
+  Future<void> _signInDemo() async {
+    try {
+      await ref.read(authFlowControllerProvider.notifier).signInDemo();
+      await ref.read(appStateControllerProvider.notifier).approveParent();
+      if (mounted) context.go('/home');
+    } catch (_) {
+      if (mounted) {
+        _showValidationMessage('Demo account is unavailable in this build.');
+      }
+    }
+  }
+
   void _showValidationMessage(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -82,6 +95,8 @@ class _ParentAccountScreenState extends ConsumerState<ParentAccountScreen> {
         controller: _contactController,
         onBack: () => context.go('/onboarding'),
         onSendOtp: _sendOtp,
+        onUseDemo: _signInDemo,
+        showDemoLogin: ref.read(authRepositoryProvider).supportsDemoLogin,
         onCreateAccount: () => context.go('/signup/account'),
       );
     }
@@ -137,11 +152,15 @@ class _ReturningParentAccountScreen extends StatelessWidget {
     required this.controller,
     required this.onBack,
     required this.onSendOtp,
+    required this.onUseDemo,
+    required this.showDemoLogin,
     required this.onCreateAccount,
   });
   final TextEditingController controller;
   final VoidCallback onBack;
   final VoidCallback onSendOtp;
+  final VoidCallback onUseDemo;
+  final bool showDemoLogin;
   final VoidCallback onCreateAccount;
 
   @override
@@ -334,9 +353,28 @@ class _ReturningParentAccountScreen extends StatelessWidget {
                           ),
                         ),
                       ),
+                      if (showDemoLogin)
+                        Positioned(
+                          left: 20,
+                          top: 588,
+                          width: 350,
+                          height: 38,
+                          child: TextButton(
+                            onPressed: onUseDemo,
+                            child: const Text(
+                              'Use demo account',
+                              style: TextStyle(
+                                fontFamily: 'Nunito',
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF38638E),
+                              ),
+                            ),
+                          ),
+                        ),
                       Positioned(
                         left: 60,
-                        top: 595,
+                        top: 632,
                         width: 270,
                         child: TextButton(
                           onPressed: onCreateAccount,

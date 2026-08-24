@@ -32,6 +32,9 @@ class LocalAppRepository
   bool get requiresAuthentication => false;
 
   @override
+  bool get supportsDemoLogin => false;
+
+  @override
   bool get hasSession => false;
 
   @override
@@ -51,6 +54,9 @@ class LocalAppRepository
     required String email,
     required String token,
   }) async {}
+
+  @override
+  Future<void> signInDemo() async {}
 
   @override
   Future<void> signOut() async {}

@@ -1,4 +1,5 @@
 import 'package:bearfetch_app/core/state/auth_state.dart';
+import 'package:bearfetch_app/data/repositories/development_demo_auth_repository.dart';
 import 'package:bearfetch_app/domain/repositories/app_repositories.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -63,4 +64,25 @@ void main() {
       AuthFlowStatus.signedOut,
     );
   });
+
+  test(
+    'development demo login creates a local authenticated session',
+    () async {
+      final repository = DevelopmentDemoAuthRepository();
+      final container = ProviderContainer(
+        overrides: [authRepositoryProvider.overrideWithValue(repository)],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(authFlowControllerProvider.future);
+      await container.read(authFlowControllerProvider.notifier).signInDemo();
+
+      expect(repository.hasSession, isTrue);
+      expect(repository.currentEmail, 'demo.parent@bearfetch.invalid');
+      expect(
+        container.read(authFlowControllerProvider).valueOrNull?.status,
+        AuthFlowStatus.authenticated,
+      );
+    },
+  );
 }
