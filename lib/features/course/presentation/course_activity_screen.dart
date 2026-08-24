@@ -2158,6 +2158,22 @@ class _LessonMessageSequence extends StatelessWidget {
     (1047, 52),
   ];
 
+  // The raster artwork has one-pixel anti-aliased top strokes. On some Android
+  // device scales those strokes are lost while an individual slice fades in.
+  // Paint the horizontal part of every outline natively so the completed
+  // lesson has a continuous border at every density.
+  static const _topBorders = <(double top, double left, double width)>[
+    (250, 41, 161),
+    (314, 41, 255),
+    (402, 41, 255),
+    (490, 41, 255),
+    (603, 41, 255),
+    (782, 41, 207),
+    (846, 41, 255),
+    (934, 41, 255),
+    (1046, 41, 121),
+  ];
+
   @override
   Widget build(BuildContext context) => Stack(
     children: [
@@ -2174,7 +2190,44 @@ class _LessonMessageSequence extends StatelessWidget {
           height: _slices[index].$2,
           visible: index < revealedCount,
         ),
+      for (var index = 0; index < _topBorders.length; index++)
+        _LessonTopBorder(
+          top: _topBorders[index].$1,
+          left: _topBorders[index].$2,
+          width: _topBorders[index].$3,
+          visible: index < revealedCount,
+        ),
     ],
+  );
+}
+
+class _LessonTopBorder extends StatelessWidget {
+  const _LessonTopBorder({
+    required this.top,
+    required this.left,
+    required this.width,
+    required this.visible,
+  });
+
+  final double top;
+  final double left;
+  final double width;
+  final bool visible;
+
+  @override
+  Widget build(BuildContext context) => Positioned(
+    left: left,
+    top: top,
+    width: width,
+    height: 2,
+    child: IgnorePointer(
+      child: AnimatedOpacity(
+        opacity: visible ? 1 : 0,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+        child: const ColoredBox(color: Color(0xFF483434)),
+      ),
+    ),
   );
 }
 
