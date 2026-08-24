@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,6 +19,8 @@ class CourseActivityScreen extends ConsumerStatefulWidget {
 class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
   final Set<int> selected = {};
   final List<int> sequence = [];
+  Timer? _lessonRevealTimer;
+  int _lessonRevealCount = 0;
 
   content.ActivityDefinition get activity =>
       ref.read(content.courseCatalogProvider).activity(widget.activityId);
@@ -25,6 +29,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
   void initState() {
     super.initState();
     _resetInteractionState();
+    _startLessonReveal();
   }
 
   @override
@@ -32,7 +37,14 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.activityId != widget.activityId) {
       _resetInteractionState();
+      _startLessonReveal();
     }
+  }
+
+  @override
+  void dispose() {
+    _lessonRevealTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -74,6 +86,22 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
     } else if (widget.activityId == 'unit-04-07') {
       selected.add(0);
     }
+  }
+
+  void _startLessonReveal() {
+    _lessonRevealTimer?.cancel();
+    _lessonRevealCount = widget.activityId == 'unit-01-01' ? 0 : 9;
+    if (widget.activityId != 'unit-01-01') return;
+
+    _lessonRevealTimer = Timer.periodic(const Duration(milliseconds: 420), (
+      timer,
+    ) {
+      if (!mounted || _lessonRevealCount == 9) {
+        timer.cancel();
+        return;
+      }
+      setState(() => _lessonRevealCount++);
+    });
   }
 
   void _selectPredictionOption(int group, int index) {
@@ -139,6 +167,9 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
             semanticLabel: a.title,
             assetPath: 'assets/illustrations/unit_01_01.png',
             assetHeight: 1200,
+            overlays: [
+              _LessonMessageSequence(revealedCount: _lessonRevealCount),
+            ],
             hitTargets: [
               _ArtworkHitTarget(
                 label: 'Back to Courses',
@@ -224,7 +255,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                     );
                 },
               ),
-              for (var index = 0; index < tiles.length; index++) ...[
+              for (var index = 0; index < tiles.length; index++)
                 _ArtworkLogoTile(
                   left: tiles[index].$2,
                   top: tiles[index].$3,
@@ -232,6 +263,13 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                   assetPath:
                       'assets/illustrations/unit_01_02_logos/${tiles[index].$4}.png',
                 ),
+              for (var index = 0; index < tiles.length; index++)
+                if (selected.contains(index))
+                  _ArtworkSelectionBadge(
+                    left: tiles[index].$2 + 89,
+                    top: tiles[index].$3 - 6,
+                  ),
+              for (var index = 0; index < tiles.length; index++)
                 _ArtworkHitTarget(
                   label: tiles[index].$1,
                   left: tiles[index].$2 - 5,
@@ -241,7 +279,6 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                   selected: selected.contains(index),
                   onTap: () => _toggle(index),
                 ),
-              ],
               _ArtworkHitTarget(
                 label: 'Hint',
                 left: 14,
@@ -1901,6 +1938,7 @@ class _ActivityArtwork extends StatelessWidget {
     required this.assetPath,
     required this.assetHeight,
     required this.hitTargets,
+    this.overlays = const [],
     this.contentHeight,
   });
 
@@ -1911,6 +1949,7 @@ class _ActivityArtwork extends StatelessWidget {
   final double assetHeight;
   final double? contentHeight;
   final List<Widget> hitTargets;
+  final List<Widget> overlays;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -1947,6 +1986,7 @@ class _ActivityArtwork extends StatelessWidget {
                           excludeFromSemantics: true,
                         ),
                       ),
+                      ...overlays,
                       ...hitTargets,
                     ],
                   ),
@@ -2057,9 +2097,101 @@ class _ArtworkLogoTile extends StatelessWidget {
               excludeFromSemantics: true,
             ),
           ),
-          if (selected)
-            const Positioned(right: 0, top: 6, child: _ArtworkCheckmark()),
         ],
+      ),
+    ),
+  );
+}
+
+class _ArtworkSelectionBadge extends StatelessWidget {
+  const _ArtworkSelectionBadge({required this.left, required this.top});
+
+  final double left;
+  final double top;
+
+  @override
+  Widget build(BuildContext context) => Positioned(
+    left: left,
+    top: top,
+    child: const IgnorePointer(child: _ArtworkCheckmark()),
+  );
+}
+
+class _LessonMessageSequence extends StatelessWidget {
+  const _LessonMessageSequence({required this.revealedCount});
+
+  final int revealedCount;
+
+  static const _slices = <(double top, double height)>[
+    (250, 54),
+    (314, 77),
+    (403, 75),
+    (491, 101),
+    (607, 163),
+    (784, 50),
+    (847, 75),
+    (936, 99),
+    (1047, 52),
+  ];
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    children: [
+      const Positioned(
+        left: 0,
+        top: 245,
+        width: 390,
+        height: 865,
+        child: ColoredBox(color: Color(0xFFFFF8EF)),
+      ),
+      for (var index = 0; index < _slices.length; index++)
+        _LessonArtworkSlice(
+          top: _slices[index].$1,
+          height: _slices[index].$2,
+          visible: index < revealedCount,
+        ),
+    ],
+  );
+}
+
+class _LessonArtworkSlice extends StatelessWidget {
+  const _LessonArtworkSlice({
+    required this.top,
+    required this.height,
+    required this.visible,
+  });
+
+  final double top;
+  final double height;
+  final bool visible;
+
+  @override
+  Widget build(BuildContext context) => Positioned(
+    left: 0,
+    top: top,
+    width: 390,
+    height: height,
+    child: AnimatedOpacity(
+      opacity: visible ? 1 : 0,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+      child: ClipRect(
+        child: Stack(
+          children: [
+            Positioned(
+              left: 0,
+              top: -top,
+              width: 390,
+              height: 1200,
+              child: Image.asset(
+                'assets/illustrations/unit_01_01.png',
+                fit: BoxFit.fill,
+                filterQuality: FilterQuality.high,
+                excludeFromSemantics: true,
+              ),
+            ),
+          ],
+        ),
       ),
     ),
   );
