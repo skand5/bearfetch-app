@@ -485,6 +485,16 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
             contentHeight: 1054,
             overlays: [
               _ArtworkChatConversation(questionIndex: _activeChatQuestion),
+              // The approved Figma export includes the first question's selected
+              // styling. Cover the complete static option region before drawing the
+              // live controls so a fresh activity starts with no selected question.
+              const Positioned(
+                left: 0,
+                top: 750,
+                width: 390,
+                height: 178,
+                child: ColoredBox(color: Color(0xFFFCF6EC)),
+              ),
               for (var index = 0; index < questions.length; index++)
                 _ArtworkQuestionOption(
                   top: const [758.0, 814.0, 870.0][index],
