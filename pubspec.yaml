@@ -75,6 +75,7 @@ flutter:
   assets:
     - assets/content/
     - assets/illustrations/
+    - assets/illustrations/unit_01_01_messages/
     - assets/illustrations/unit_01_02_logos/
     - assets/icons/
     - assets/icons/home/

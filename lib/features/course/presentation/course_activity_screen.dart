@@ -2146,32 +2146,16 @@ class _LessonMessageSequence extends StatelessWidget {
 
   final int revealedCount;
 
-  static const _slices = <(double top, double height)>[
-    (250, 54),
-    (314, 77),
-    (403, 75),
-    (491, 101),
-    (607, 163),
-    (784, 50),
-    (847, 75),
-    (936, 99),
-    (1047, 52),
-  ];
-
-  // The raster artwork has one-pixel anti-aliased top strokes. On some Android
-  // device scales those strokes are lost while an individual slice fades in.
-  // Paint the horizontal part of every outline natively so the completed
-  // lesson has a continuous border at every density.
-  static const _topBorders = <(double top, double left, double width)>[
-    (250, 41, 161),
-    (314, 41, 255),
-    (402, 41, 255),
-    (490, 41, 255),
-    (603, 41, 255),
-    (782, 41, 207),
-    (846, 41, 255),
-    (934, 41, 255),
-    (1046, 41, 121),
+  static const _messageAssets = <(double top, double height, String path)>[
+    (244, 66, 'assets/illustrations/unit_01_01_messages/message_01.png'),
+    (308, 89, 'assets/illustrations/unit_01_01_messages/message_02.png'),
+    (397, 87, 'assets/illustrations/unit_01_01_messages/message_03.png'),
+    (485, 113, 'assets/illustrations/unit_01_01_messages/message_04.png'),
+    (601, 175, 'assets/illustrations/unit_01_01_messages/message_05.png'),
+    (778, 62, 'assets/illustrations/unit_01_01_messages/message_06.png'),
+    (841, 87, 'assets/illustrations/unit_01_01_messages/message_07.png'),
+    (930, 111, 'assets/illustrations/unit_01_01_messages/message_08.png'),
+    (1040, 64, 'assets/illustrations/unit_01_01_messages/message_09.png'),
   ];
 
   @override
@@ -2179,104 +2163,55 @@ class _LessonMessageSequence extends StatelessWidget {
     children: [
       const Positioned(
         left: 0,
-        top: 245,
+        top: 240,
         width: 390,
-        height: 865,
+        height: 870,
         child: ColoredBox(color: Color(0xFFFFF8EF)),
       ),
-      for (var index = 0; index < _slices.length; index++)
-        _LessonArtworkSlice(
-          top: _slices[index].$1,
-          height: _slices[index].$2,
-          visible: index < revealedCount,
-        ),
-      for (var index = 0; index < _topBorders.length; index++)
-        _LessonTopBorder(
-          top: _topBorders[index].$1,
-          left: _topBorders[index].$2,
-          width: _topBorders[index].$3,
+      for (var index = 0; index < _messageAssets.length; index++)
+        _LessonMessageAsset(
+          top: _messageAssets[index].$1,
+          height: _messageAssets[index].$2,
+          assetPath: _messageAssets[index].$3,
           visible: index < revealedCount,
         ),
     ],
   );
 }
 
-class _LessonTopBorder extends StatelessWidget {
-  const _LessonTopBorder({
-    required this.top,
-    required this.left,
-    required this.width,
-    required this.visible,
-  });
-
-  final double top;
-  final double left;
-  final double width;
-  final bool visible;
-
-  @override
-  Widget build(BuildContext context) => Positioned(
-    left: left,
-    top: top,
-    width: width,
-    height: 2,
-    child: IgnorePointer(
-      child: AnimatedOpacity(
-        opacity: visible ? 1 : 0,
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOut,
-        child: const ColoredBox(color: Color(0xFF483434)),
-      ),
-    ),
-  );
-}
-
-class _LessonArtworkSlice extends StatelessWidget {
-  const _LessonArtworkSlice({
+class _LessonMessageAsset extends StatelessWidget {
+  const _LessonMessageAsset({
     required this.top,
     required this.height,
+    required this.assetPath,
     required this.visible,
   });
 
   final double top;
   final double height;
+  final String assetPath;
   final bool visible;
 
   @override
-  Widget build(BuildContext context) {
-    // Include the anti-aliased top border in the clipped source image. Without
-    // this small bleed, FittedBox scaling cuts the top stroke while revealing.
-    final sliceTop = top - 4;
-    return Positioned(
-      left: 0,
-      top: sliceTop,
-      width: 390,
-      height: height + 4,
+  Widget build(BuildContext context) => Positioned(
+    left: 0,
+    top: top,
+    width: 390,
+    height: height,
+    child: IgnorePointer(
       child: AnimatedOpacity(
         opacity: visible ? 1 : 0,
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOut,
-        child: ClipRect(
-          child: Stack(
-            children: [
-              Positioned(
-                left: 0,
-                top: -sliceTop,
-                width: 390,
-                height: 1200,
-                child: Image.asset(
-                  'assets/illustrations/unit_01_01.png',
-                  fit: BoxFit.fill,
-                  filterQuality: FilterQuality.high,
-                  excludeFromSemantics: true,
-                ),
-              ),
-            ],
-          ),
+        child: Image.asset(
+          assetPath,
+          fit: BoxFit.fill,
+          filterQuality: FilterQuality.high,
+          excludeFromSemantics: true,
         ),
       ),
-    );
-  }
+    ),
+  );
 }
 
 class _ArtworkCheckmark extends StatelessWidget {
