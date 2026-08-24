@@ -21,6 +21,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
   final List<int> sequence = [];
   Timer? _lessonRevealTimer;
   int _lessonRevealCount = 0;
+  int? _activeChatQuestion;
 
   content.ActivityDefinition get activity =>
       ref.read(content.courseCatalogProvider).activity(widget.activityId);
@@ -56,6 +57,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
   void _resetInteractionState() {
     selected.clear();
     sequence.clear();
+    _activeChatQuestion = null;
     if (widget.activityId == 'unit-01-03') {
       selected.add(0);
     } else if (widget.activityId == 'unit-01-04') {
@@ -113,7 +115,12 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
 
   void _toggle(int index) {
     setState(() {
-      if (activity.kind == content.ActivityKind.multiSelect) {
+      if (widget.activityId == 'unit-01-04') {
+        // This is an exploration, not a scored question: each option must be
+        // tried once and the latest reply remains visible in the chat panel.
+        selected.add(index);
+        _activeChatQuestion = index;
+      } else if (activity.kind == content.ActivityKind.multiSelect) {
         selected.contains(index) ? selected.remove(index) : selected.add(index);
       } else if (activity.kind == content.ActivityKind.sequence) {
         if (selected.remove(index)) {
@@ -131,6 +138,18 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
   }
 
   void _check() {
+    if (widget.activityId == 'unit-01-04') {
+      if (selected.length < activity.options.length) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Try all three questions to complete this activity.'),
+          ),
+        );
+        return;
+      }
+      context.go('/result/${activity.id}?correct=true');
+      return;
+    }
     if (activity.kind == content.ActivityKind.lesson) {
       context.go('/result/${activity.id}?correct=true');
       return;
@@ -452,7 +471,6 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
       );
     }
     if (a.id == 'unit-01-04') {
-      final selectedQuestion = selected.isEmpty ? 0 : selected.first;
       const questions = [
         'What is an AI chatbot?',
         'Where do chatbots appear?',
@@ -465,6 +483,15 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
             assetPath: 'assets/illustrations/unit_01_04.png',
             assetHeight: 1074,
             contentHeight: 1054,
+            overlays: [
+              _ArtworkChatConversation(questionIndex: _activeChatQuestion),
+              for (var index = 0; index < questions.length; index++)
+                _ArtworkQuestionOption(
+                  top: const [758.0, 814.0, 870.0][index],
+                  label: questions[index],
+                  selected: selected.contains(index),
+                ),
+            ],
             hitTargets: [
               _ArtworkHitTarget(
                 label: 'Back to Courses',
@@ -492,19 +519,6 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                     );
                 },
               ),
-              if (selectedQuestion != 0) ...[
-                _ArtworkChatConversation(questionIndex: selectedQuestion),
-                _ArtworkQuestionOption(
-                  top: 758,
-                  label: questions[0],
-                  selected: false,
-                ),
-                _ArtworkQuestionOption(
-                  top: selectedQuestion == 1 ? 814 : 870,
-                  label: questions[selectedQuestion],
-                  selected: true,
-                ),
-              ],
               for (var index = 0; index < questions.length; index++)
                 _ArtworkHitTarget(
                   label: questions[index],
@@ -512,7 +526,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                   top: const [752.0, 808.0, 864.0][index],
                   width: 358,
                   height: 61,
-                  selected: selectedQuestion == index,
+                  selected: selected.contains(index),
                   onTap: () => _toggle(index),
                 ),
               _ArtworkHitTarget(
@@ -2401,16 +2415,20 @@ class _ArtworkQuestionOption extends StatelessWidget {
 class _ArtworkChatConversation extends StatelessWidget {
   const _ArtworkChatConversation({required this.questionIndex});
 
-  final int questionIndex;
+  final int? questionIndex;
 
   @override
   Widget build(BuildContext context) {
-    final question = questionIndex == 1
-        ? 'Where do chatbots appear?'
-        : 'What can a chatbot do?';
-    final answer = questionIndex == 1
-        ? 'Chatbots appear in apps, websites, games, search, shopping, and support.'
-        : 'A chatbot can answer questions, explain ideas, and help people complete tasks.';
+    const questions = [
+      'What is an AI chatbot?',
+      'Where do chatbots appear?',
+      'What can a chatbot do?',
+    ];
+    const answers = [
+      'An AI chatbot is a smart helper that can reply to your questions using words.',
+      'Chatbots can appear in apps, websites, games, search, shopping, and support.',
+      'A chatbot can answer questions, explain ideas, and help people complete tasks.',
+    ];
 
     return Positioned(
       left: 23,
@@ -2437,35 +2455,37 @@ class _ArtworkChatConversation extends StatelessWidget {
                 top: 93,
                 child: _ArtworkChatAvatar(bot: true),
               ),
-              Positioned(
-                right: 28,
-                top: 141,
-                width: 252,
-                child: _ArtworkChatBubble(
-                  text: question,
-                  color: const Color(0xFFFFCEB8),
-                  compact: true,
+              if (questionIndex case final selectedQuestion?) ...[
+                Positioned(
+                  right: 28,
+                  top: 141,
+                  width: 252,
+                  child: _ArtworkChatBubble(
+                    text: questions[selectedQuestion],
+                    color: const Color(0xFFFFCEB8),
+                    compact: true,
+                  ),
                 ),
-              ),
-              const Positioned(
-                right: 5,
-                top: 151,
-                child: _ArtworkChatAvatar(bot: false),
-              ),
-              Positioned(
-                left: 57,
-                top: 201,
-                width: 264,
-                child: _ArtworkChatBubble(
-                  text: answer,
-                  color: const Color(0xFFA9EDBE),
+                const Positioned(
+                  right: 5,
+                  top: 151,
+                  child: _ArtworkChatAvatar(bot: false),
                 ),
-              ),
-              const Positioned(
-                left: 16,
-                top: 260,
-                child: _ArtworkChatAvatar(bot: true),
-              ),
+                Positioned(
+                  left: 57,
+                  top: 201,
+                  width: 264,
+                  child: _ArtworkChatBubble(
+                    text: answers[selectedQuestion],
+                    color: const Color(0xFFA9EDBE),
+                  ),
+                ),
+                const Positioned(
+                  left: 16,
+                  top: 260,
+                  child: _ArtworkChatAvatar(bot: true),
+                ),
+              ],
             ],
           ),
         ),

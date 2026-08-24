@@ -181,6 +181,46 @@ void main() {
     }
   });
 
+  testWidgets('chatbot exploration requires trying each question', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      harness.wrap(
+        const MaterialApp(home: CourseActivityScreen(activityId: 'unit-01-04')),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.text(
+        'An AI chatbot is a smart helper that can reply to your questions using words.',
+      ),
+      findsNothing,
+    );
+
+    final questions = const [
+      'What is an AI chatbot?',
+      'Where do chatbots appear?',
+      'What can a chatbot do?',
+    ];
+    final replies = const [
+      'An AI chatbot is a smart helper that can reply to your questions using words.',
+      'Chatbots can appear in apps, websites, games, search, shopping, and support.',
+      'A chatbot can answer questions, explain ideas, and help people complete tasks.',
+    ];
+
+    for (var index = 0; index < questions.length; index++) {
+      final question = find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics && widget.properties.label == questions[index],
+      );
+      await tester.ensureVisible(question);
+      await tester.tap(question);
+      await tester.pump();
+      expect(find.text(replies[index]), findsOneWidget);
+    }
+  });
+
   testWidgets('activity result copy changes with the completed activity', (
     tester,
   ) async {
