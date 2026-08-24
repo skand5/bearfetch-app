@@ -83,6 +83,7 @@ Visual acceptance remains the current Flutter UI and approved Figma screenshots.
 - Course completion awards `+100 XP`, `+50 honey`, AI Explorer badge, and LLM Starter certificate once.
 - Purchases are transactional and idempotent; only owned accessories can be equipped.
 - Development demo starts Max at the first course activity with 0 XP, 0 honey, no owned or equipped accessories, and no activity progress. Every **Use demo account** sign-in resets those local demo-only values.
+- Courses, Shop, and Profile render course progress, balances, owned/equipped accessories, and achievement counts from local state rather than the sample values baked into their Figma artboards.
 - Development builds include a clearly labelled local **Use demo account** action.
   It creates no remote user, sends no OTP, performs no Supabase request, and
   enters the local fresh parent/learner experience only. It is unavailable in

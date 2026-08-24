@@ -98,7 +98,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                           onTap: _share,
                         ),
                       ),
-                      if (state.honey != 128) _HoneyBalance(value: state.honey),
+                      _HoneyBalance(value: state.honey),
                       Positioned.fill(
                         child: _CategoryLayer(
                           selected: category,
@@ -112,20 +112,20 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                             equipped: state.equippedAccessory == 'Star Cap',
                           ),
                         ),
-                      if (state.equippedAccessory == 'Moon Glasses')
-                        const _OwnedCardState(
-                          left: 205,
-                          top: 850,
-                          status: 'EQUIPPED',
-                          action: 'Equipped',
-                        ),
-                      if (state.equippedAccessory != 'Rocket Pack')
-                        const _OwnedCardState(
-                          left: 20,
-                          top: 1111,
-                          status: 'OWNED',
-                          action: 'Equip',
-                        ),
+                      _AccessoryCardStatus(
+                        left: 205,
+                        top: 850,
+                        owned: state.ownedAccessories.contains('Moon Glasses'),
+                        equipped: state.equippedAccessory == 'Moon Glasses',
+                        price: 60,
+                      ),
+                      _AccessoryCardStatus(
+                        left: 20,
+                        top: 1111,
+                        owned: state.ownedAccessories.contains('Rocket Pack'),
+                        equipped: state.equippedAccessory == 'Rocket Pack',
+                        price: 90,
+                      ),
                       Positioned(
                         left: 24,
                         top: 874,
@@ -304,11 +304,12 @@ class _StarCapState extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Stack(
     children: [
-      _OwnedCardState(
+      _AccessoryCardStatus(
         left: 20,
         top: 850,
-        status: equipped ? 'EQUIPPED' : 'OWNED',
-        action: equipped ? 'Equipped' : 'Equip',
+        owned: true,
+        equipped: equipped,
+        price: 25,
       ),
       Positioned(
         left: 20,
@@ -350,18 +351,20 @@ class _StarCapState extends StatelessWidget {
   );
 }
 
-class _OwnedCardState extends StatelessWidget {
-  const _OwnedCardState({
+class _AccessoryCardStatus extends StatelessWidget {
+  const _AccessoryCardStatus({
     required this.left,
     required this.top,
-    required this.status,
-    required this.action,
+    required this.owned,
+    required this.equipped,
+    required this.price,
   });
 
   final double left;
   final double top;
-  final String status;
-  final String action;
+  final bool owned;
+  final bool equipped;
+  final int price;
 
   @override
   Widget build(BuildContext context) => Positioned(
@@ -375,23 +378,31 @@ class _OwnedCardState extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            status,
-            style: const TextStyle(
+            equipped
+                ? 'EQUIPPED'
+                : owned
+                ? 'OWNED'
+                : 'NOT OWNED',
+            style: TextStyle(
               fontFamily: 'Fredoka',
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF6CE3C8),
+              color: owned ? const Color(0xFF6CE3C8) : const Color(0xFF877365),
             ),
           ),
           const Spacer(),
           Center(
             child: Text(
-              action,
+              equipped
+                  ? 'Equipped'
+                  : owned
+                  ? 'Equip'
+                  : 'Earn $price honey',
               style: TextStyle(
                 fontFamily: 'Fredoka',
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: action == 'Equipped'
+                color: equipped
                     ? const Color(0xFFB0A7A7)
                     : BearfetchColors.cocoa,
               ),

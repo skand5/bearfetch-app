@@ -48,6 +48,7 @@ class CoursesScreen extends ConsumerWidget {
                           filterQuality: FilterQuality.high,
                         ),
                       ),
+                      _CourseProgressOverlay(progress: state.progress),
                       Positioned(
                         left: 326,
                         top: 16,
@@ -88,6 +89,62 @@ class CoursesScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _CourseProgressOverlay extends StatelessWidget {
+  const _CourseProgressOverlay({required this.progress});
+
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    children: [
+      Positioned(
+        left: 310,
+        top: 398,
+        width: 38,
+        height: 21,
+        child: ColoredBox(
+          color: const Color(0xFF9DCEE6),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              '${(progress * 100).round()}%',
+              style: const TextStyle(
+                fontFamily: 'Fredoka',
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+                color: Color(0xFF293033),
+              ),
+            ),
+          ),
+        ),
+      ),
+      Positioned(
+        left: 47,
+        top: 419,
+        width: 296,
+        height: 13,
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8F7F0),
+            border: Border.all(color: const Color(0xFF293033), width: 2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: FractionallySizedBox(
+            alignment: Alignment.centerLeft,
+            widthFactor: progress.clamp(0.0, 1.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF86F6DA),
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ],
+  );
 }
 
 class _CourseHitTarget extends StatelessWidget {

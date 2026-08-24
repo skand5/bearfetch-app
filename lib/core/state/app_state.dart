@@ -48,8 +48,7 @@ class AppViewState {
 
   bool get courseStarted => completedActivityIds.isNotEmpty;
   double get progress => completedSteps / 36;
-  String get equippedAccessory =>
-      equippedAccessories['featured'] ?? 'Rocket Pack';
+  String? get equippedAccessory => equippedAccessories['featured'];
 
   factory AppViewState.loading(CourseCatalog catalog) => AppViewState(
     parentName: 'Parent',
