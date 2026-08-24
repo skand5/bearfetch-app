@@ -44,9 +44,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
   void _resetInteractionState() {
     selected.clear();
     sequence.clear();
-    if (widget.activityId == 'unit-01-02') {
-      selected.addAll(activity.correct);
-    } else if (widget.activityId == 'unit-01-03') {
+    if (widget.activityId == 'unit-01-03') {
       selected.add(0);
     } else if (widget.activityId == 'unit-01-04') {
       selected.add(0);
@@ -2018,15 +2016,22 @@ class _ArtworkLogoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Positioned(
-    left: left,
-    top: top,
-    width: 109,
-    height: 109,
+    // The approved Figma export includes initial check badges. The surrounding
+    // page-colour layer masks those static badges before drawing live state.
+    left: left - 10,
+    top: top - 12,
+    width: 129,
+    height: 130,
     child: IgnorePointer(
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Positioned.fill(
+          const Positioned.fill(child: ColoredBox(color: Color(0xFFFCF6EC))),
+          Positioned(
+            left: 10,
+            top: 12,
+            width: 109,
+            height: 109,
             child: DecoratedBox(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -2041,8 +2046,8 @@ class _ArtworkLogoTile extends StatelessWidget {
             ),
           ),
           Positioned(
-            left: 8,
-            top: 20,
+            left: 18,
+            top: 32,
             width: 93,
             height: 79,
             child: Image.asset(
@@ -2053,7 +2058,7 @@ class _ArtworkLogoTile extends StatelessWidget {
             ),
           ),
           if (selected)
-            const Positioned(right: -5, top: -6, child: _ArtworkCheckmark()),
+            const Positioned(right: 0, top: 6, child: _ArtworkCheckmark()),
         ],
       ),
     ),
