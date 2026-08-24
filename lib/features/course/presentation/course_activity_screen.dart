@@ -60,8 +60,6 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
     _activeChatQuestion = null;
     if (widget.activityId == 'unit-01-03') {
       selected.add(0);
-    } else if (widget.activityId == 'unit-01-04') {
-      selected.add(0);
     } else if (widget.activityId == 'unit-02-02') {
       selected.add(0);
     } else if (widget.activityId == 'unit-02-03') {

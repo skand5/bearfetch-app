@@ -209,6 +209,19 @@ void main() {
       'A chatbot can answer questions, explain ideas, and help people complete tasks.',
     ];
 
+    for (final questionLabel in questions) {
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Semantics &&
+              widget.properties.label == questionLabel &&
+              widget.properties.selected == false,
+        ),
+        findsOneWidget,
+        reason: 'A fresh chatbot exploration must not preselect a question.',
+      );
+    }
+
     for (var index = 0; index < questions.length; index++) {
       final question = find.byWidgetPredicate(
         (widget) =>
