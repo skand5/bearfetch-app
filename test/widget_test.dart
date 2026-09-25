@@ -145,6 +145,7 @@ void main() {
   testWidgets('all course activity definitions render natively', (
     tester,
   ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
     for (final entry in harness.catalog.byId.entries) {
       await tester.pumpWidget(
         harness.wrap(
@@ -178,6 +179,26 @@ void main() {
         expect(find.text(entry.value.title), findsOneWidget, reason: entry.key);
       }
       expect(tester.takeException(), isNull, reason: entry.key);
+    }
+  });
+
+  testWidgets('all activities start with no selected response', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    for (final activityId in harness.catalog.byId.keys) {
+      await tester.pumpWidget(
+        harness.wrap(
+          MaterialApp(home: CourseActivityScreen(activityId: activityId)),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is Semantics && widget.properties.selected == true,
+        ),
+        findsNothing,
+        reason: '$activityId must start with no selected response.',
+      );
     }
   });
 
@@ -232,6 +253,190 @@ void main() {
       await tester.pump();
       expect(find.text(replies[index]), findsOneWidget);
     }
+  });
+
+  testWidgets('tone exploration requires trying all three styles', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      harness.wrap(
+        const MaterialApp(home: CourseActivityScreen(activityId: 'unit-03-02')),
+      ),
+    );
+    await tester.pump();
+
+    for (final label in const ['Funny style', 'Serious style']) {
+      final option = find.bySemanticsLabel(label);
+      await tester.ensureVisible(option);
+      await tester.tap(option);
+      await tester.pump();
+    }
+
+    final check = find.bySemanticsLabel('Check');
+    await tester.ensureVisible(check);
+    await tester.tap(check);
+    await tester.pump();
+    expect(
+      find.text('Try Funny, Serious, and Friendly before continuing.'),
+      findsOneWidget,
+    );
+
+    final friendly = find.bySemanticsLabel('Friendly style');
+    await tester.ensureVisible(friendly);
+    await tester.tap(friendly);
+    await tester.pump();
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.label == 'Friendly style' &&
+            widget.properties.selected == true,
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('chatbot system parts fill slots after the fixed chat screen', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      harness.wrap(
+        const MaterialApp(home: CourseActivityScreen(activityId: 'unit-04-01')),
+      ),
+    );
+    await tester.pump();
+
+    final aiBrain = find.bySemanticsLabel('AI Brain');
+    await tester.ensureVisible(aiBrain);
+    await tester.tap(aiBrain);
+    await tester.pump();
+
+    expect(
+      find.bySemanticsLabel('Remove AI Brain from slot 2'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('prediction activity accepts all three natural next words', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      harness.wrap(
+        const MaterialApp(home: CourseActivityScreen(activityId: 'unit-02-02')),
+      ),
+    );
+    await tester.pump();
+
+    for (final label in const ['honey', 'answer', 'sky']) {
+      final option = find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.label == label &&
+            widget.properties.selected == false,
+      );
+      expect(option, findsOneWidget);
+      await tester.tap(option);
+      await tester.pump();
+    }
+
+    for (final label in const ['honey', 'answer', 'sky']) {
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Semantics &&
+              widget.properties.label == label &&
+              widget.properties.selected == true,
+        ),
+        findsOneWidget,
+      );
+    }
+  });
+
+  testWidgets('memory reply activity starts without a selected reply', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      harness.wrap(
+        const MaterialApp(home: CourseActivityScreen(activityId: 'unit-02-03')),
+      ),
+    );
+    await tester.pump();
+
+    for (final label in const [
+      'Reply A uses memory',
+      'Reply B has no memory',
+    ]) {
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Semantics &&
+              widget.properties.label == label &&
+              widget.properties.selected == false,
+        ),
+        findsOneWidget,
+      );
+    }
+  });
+
+  testWidgets('training examples react to the selected chatbot type', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      harness.wrap(
+        const MaterialApp(
+          home: CourseActivityScreen(
+            activityId: 'unit-04-06',
+            chatbotTypeIndex: 0,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Your chatbot: Math Bot'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is Semantics && widget.properties.selected == true,
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('bot test reveals its response before enabling Yes or No', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      harness.wrap(
+        const MaterialApp(home: CourseActivityScreen(activityId: 'unit-04-07')),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.bySemanticsLabel('Yes, it helped'), findsNothing);
+    expect(find.bySemanticsLabel('Not yet'), findsNothing);
+
+    await tester.tap(find.bySemanticsLabel('Try Example Prompt').last);
+    await tester.pump();
+
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics && widget.properties.label == 'Yes, it helped',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is Semantics && widget.properties.label == 'Not yet',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is Semantics && widget.properties.selected == true,
+      ),
+      findsNothing,
+    );
   });
 
   testWidgets('activity result copy changes with the completed activity', (

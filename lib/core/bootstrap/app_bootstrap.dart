@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/local/app_database.dart';
 import '../../data/repositories/development_demo_auth_repository.dart';
 import '../../data/repositories/local_app_repository.dart';
+import '../../data/repositories/revenuecat_purchase_repository.dart';
 import '../../data/repositories/supabase_repositories.dart';
 import '../../domain/content/course_catalog.dart';
 import '../../domain/repositories/app_repositories.dart';
@@ -126,6 +127,9 @@ List<Override> bootstrapOverrides(BootstrapDependencies dependencies) => [
             Supabase.instance.client,
           )
         : dependencies.repository,
+  ),
+  progressInsightPurchaseRepositoryProvider.overrideWithValue(
+    RevenueCatPurchaseRepository(),
   ),
 ];
 

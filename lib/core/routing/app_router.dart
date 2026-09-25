@@ -145,6 +145,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/activity/:activityId',
         builder: (context, state) => CourseActivityScreen(
           activityId: state.pathParameters['activityId']!,
+          chatbotTypeIndex: int.tryParse(
+            state.uri.queryParameters['chatbotType'] ?? '',
+          ),
         ),
       ),
       GoRoute(
@@ -152,6 +155,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => ActivityResultScreen(
           activityId: state.pathParameters['activityId']!,
           correct: state.uri.queryParameters['correct'] == 'true',
+          chatbotTypeIndex: int.tryParse(
+            state.uri.queryParameters['chatbotType'] ?? '',
+          ),
         ),
       ),
       GoRoute(

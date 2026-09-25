@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 
 import 'core/config/app_config.dart';
 import 'core/bootstrap/app_bootstrap.dart';
+import 'core/bootstrap/launch_splash.dart';
 import 'core/observability/sentry_observability.dart';
 import 'app.dart';
 
@@ -25,7 +26,9 @@ Future<void> main() async {
     runApp(
       ProviderScope(
         overrides: bootstrapOverrides(dependencies),
-        child: BearfetchApp(syncWarning: dependencies.syncWarning),
+        child: LaunchSplash(
+          child: BearfetchApp(syncWarning: dependencies.syncWarning),
+        ),
       ),
     );
   });

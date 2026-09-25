@@ -5,12 +5,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/fake_auth_repository.dart';
+import '../../support/fake_progress_insight_purchase_repository.dart';
 
 void main() {
   test('restores an existing authenticated session', () async {
     final repository = FakeAuthRepository(authenticated: true);
     final container = ProviderContainer(
-      overrides: [authRepositoryProvider.overrideWithValue(repository)],
+      overrides: [
+        authRepositoryProvider.overrideWithValue(repository),
+        progressInsightPurchaseRepositoryProvider.overrideWithValue(
+          FakeProgressInsightPurchaseRepository(),
+        ),
+      ],
     );
     addTearDown(container.dispose);
     final state = await container.read(authFlowControllerProvider.future);
@@ -19,8 +25,12 @@ void main() {
 
   test('requests, verifies, resends, expires, and signs out', () async {
     final repository = FakeAuthRepository(sessionEvents: true);
+    final purchases = FakeProgressInsightPurchaseRepository();
     final container = ProviderContainer(
-      overrides: [authRepositoryProvider.overrideWithValue(repository)],
+      overrides: [
+        authRepositoryProvider.overrideWithValue(repository),
+        progressInsightPurchaseRepositoryProvider.overrideWithValue(purchases),
+      ],
     );
     addTearDown(() async {
       container.dispose();
@@ -59,6 +69,7 @@ void main() {
 
     await controller.signOut();
     expect(repository.signOutCount, 1);
+    expect(purchases.signOutCount, 1);
     expect(
       container.read(authFlowControllerProvider).valueOrNull?.status,
       AuthFlowStatus.signedOut,
@@ -73,7 +84,12 @@ void main() {
         resetDemoState: () async => resetCount++,
       );
       final container = ProviderContainer(
-        overrides: [authRepositoryProvider.overrideWithValue(repository)],
+        overrides: [
+          authRepositoryProvider.overrideWithValue(repository),
+          progressInsightPurchaseRepositoryProvider.overrideWithValue(
+            FakeProgressInsightPurchaseRepository(),
+          ),
+        ],
       );
       addTearDown(container.dispose);
 

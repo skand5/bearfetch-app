@@ -58,6 +58,8 @@ class ParentSettingsScreen extends ConsumerWidget {
               icon: Icons.schedule,
             ),
           const SizedBox(height: 24),
+          const _ProgressInsightCard(),
+          const SizedBox(height: 24),
           FilledButton.icon(
             onPressed: () => _exportData(context, ref),
             icon: const Icon(Icons.download_outlined),
@@ -271,6 +273,143 @@ class ParentSettingsScreen extends ConsumerWidget {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(text)));
+}
+
+class _ProgressInsightCard extends ConsumerStatefulWidget {
+  const _ProgressInsightCard();
+
+  @override
+  ConsumerState<_ProgressInsightCard> createState() =>
+      _ProgressInsightCardState();
+}
+
+class _ProgressInsightCardState extends ConsumerState<_ProgressInsightCard> {
+  ProgressInsightPurchaseState? _state;
+  bool _loading = true;
+  bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  String? get _parentUserId => ref.read(authRepositoryProvider).currentUserId;
+
+  Future<void> _load() async {
+    final parentUserId = _parentUserId;
+    if (parentUserId == null) return;
+    final state = await ref
+        .read(progressInsightPurchaseRepositoryProvider)
+        .statusFor(parentUserId);
+    if (mounted) {
+      setState(() {
+        _state = state;
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _purchase({required bool restore}) async {
+    final parentUserId = _parentUserId;
+    if (parentUserId == null) return;
+    setState(() => _submitting = true);
+    final repository = ref.read(progressInsightPurchaseRepositoryProvider);
+    final state = restore
+        ? await repository.restore(parentUserId)
+        : await repository.purchase(parentUserId);
+    if (!mounted) return;
+    setState(() {
+      _state = state;
+      _submitting = false;
+    });
+    if (state.message != null) _message(state.message!);
+  }
+
+  void _message(String text) => ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(text)));
+
+  @override
+  Widget build(BuildContext context) {
+    final state = _state;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: _loading
+            ? const Center(child: CircularProgressIndicator.adaptive())
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Progress insight',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  if (state?.hasEntitlement ?? false) ...[
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.check_circle_rounded,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'Your lifetime access is active. We will email '
+                            'your family a progress insight directly — no '
+                            'further action needed.',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    const Text(
+                      'Get lifetime access to request a human-reviewed progress insight by email.',
+                    ),
+                    if (state?.localizedPrice != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'One-time purchase · ${state!.localizedPrice}',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ],
+                    if (state?.message != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        state!.message!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: state?.canPurchase == true && !_submitting
+                          ? () => _purchase(restore: false)
+                          : null,
+                      child: Text(
+                        _submitting ? 'Please wait…' : 'Buy lifetime access',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed:
+                          state?.availability ==
+                                  ProgressInsightPurchaseAvailability
+                                      .available &&
+                              !_submitting
+                          ? () => _purchase(restore: true)
+                          : null,
+                      child: const Text('Restore purchase'),
+                    ),
+                  ],
+                ],
+              ),
+      ),
+    );
+  }
 }
 
 class AccessRestrictedScreen extends StatelessWidget {

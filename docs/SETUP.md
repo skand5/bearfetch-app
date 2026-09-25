@@ -52,6 +52,8 @@ SUPABASE_URL=https://PROJECT_REF.supabase.co
 SUPABASE_ANON_KEY=public anon/publishable client key
 SENTRY_DSN=public Sentry Flutter DSN
 SENTRY_ENVIRONMENT=production
+REVENUECAT_ANDROID_PUBLIC_SDK_KEY=RevenueCat Android public SDK key
+REVENUECAT_IOS_PUBLIC_SDK_KEY=RevenueCat iOS public SDK key
 ```
 
 Run development:
@@ -63,6 +65,38 @@ flutter run \
 ```
 
 Do not commit `config/development.json` or `config/production.json`.
+
+### RevenueCat purchase setup
+
+The parent-only Progress insight request is a one-time, non-consumable $4.99
+purchase. It is disabled until RevenueCat returns a configured offering; no
+local demo bypass exists.
+
+Complete setup in this order:
+
+1. Create RevenueCat apps for Android `com.bearfetch.app` and iOS
+   `com.bearfetch.app`.
+2. Create each platform's non-consumable product with identifier
+   `bearfetch_progress_insight_lifetime` and price $4.99.
+3. Create entitlement `progress_insight_requests`.
+4. Add each product to the current/default offering as its lifetime package.
+5. Put only each app's RevenueCat **public SDK key** in the platform key fields
+   above. Never use a RevenueCat secret key in Flutter, Dart defines, local mobile
+   build arguments, APKs, or iOS bundles.
+6. For hackathon development, put a RevenueCat Test Store key only in the
+   uncommitted `config/development.json` field
+   `REVENUECAT_TEST_STORE_API_KEY`. It has precedence in development and must
+   be empty for production.
+7. In Google Play Console, activate billing and test with a licensed tester.
+   The Android billing permission is already in
+   `android/app/src/main/AndroidManifest.xml`.
+8. In Apple Developer / App Store Connect, enable In-App Purchase for the App
+   ID and create the matching non-consumable product. This is a portal setting,
+   not a distributable entitlement file.
+
+Manual release gate: Test purchase and Restore Purchase in RevenueCat Test
+Store first, then both Google Play and App Store sandboxes. Verify active
+`progress_insight_requests` entitlement in RevenueCat dashboard before release.
 
 ## 3. Android release signing
 
@@ -170,48 +204,22 @@ Accounts are not required for Section 1 development builds. Before authenticatio
 
 Single remote project risk: after public launch, remote database is production. Rehearse migrations locally with Supabase CLI, back up production, and never use production for destructive development tests.
 
-## 7. GitHub Actions secrets
+## 7. Local release material
 
-Quality CI needs no project credentials. Manual release workflow needs:
+GitHub Actions is not used. Keep all release material on the trusted release
+machine and outside Git:
 
-```text
-SUPABASE_URL
-SUPABASE_ANON_KEY
-SENTRY_DSN
-SENTRY_AUTH_TOKEN
-SENTRY_ORG
-SENTRY_PROJECT
-SUPABASE_ACCESS_TOKEN
-SUPABASE_PROJECT_REF
-SUPABASE_DB_PASSWORD
-ANDROID_KEYSTORE_BASE64
-ANDROID_KEY_ALIAS
-ANDROID_KEY_PASSWORD
-ANDROID_STORE_PASSWORD
-APPLE_TEAM_ID
-IOS_CERTIFICATE_BASE64
-IOS_CERTIFICATE_PASSWORD
-IOS_PROVISIONING_PROFILE_BASE64
-IOS_PROVISIONING_PROFILE_NAME
-KEYCHAIN_PASSWORD
-APP_STORE_CONNECT_KEY_ID
-APP_STORE_CONNECT_ISSUER_ID
-APP_STORE_CONNECT_PRIVATE_KEY
-```
+- Android upload keystore and `android/key.properties`.
+- Apple distribution certificate, provisioning profile, App Store Connect key,
+  and `ios/Flutter/Signing.local.xcconfig`.
+- Supabase management credentials and Sentry auth token only when a local
+  server migration or symbol-upload command requires them.
 
-`SENTRY_AUTH_TOKEN`, Supabase management credentials, and App Store Connect keys are reserved for later deployment/symbol-upload jobs. They must remain CI-only.
+Never place these in Flutter Dart defines, `config/*.json`, Supabase client
+configuration, or source control. Store copies in an encrypted password manager
+or encrypted backup.
 
-Encode binary signing files without line wrapping:
-
-```bash
-base64 < /secure/path/bearfetch-upload.jks | tr -d '\n'
-base64 < /secure/path/apple-distribution.p12 | tr -d '\n'
-base64 < /secure/path/BearFetch.mobileprovision | tr -d '\n'
-```
-
-Protect release environment with required reviewer approval. Do not expose secrets to pull requests from forks.
-
-## 8. Verification
+## 8. Manual validation and builds
 
 ```bash
 dart format --output=none --set-exit-if-changed lib test
@@ -219,10 +227,24 @@ flutter analyze
 flutter test
 dart run build_runner build
 git diff --exit-code -- lib/data/local/app_database.g.dart
-flutter build apk --debug --flavor development --dart-define=APP_ENV=development
+flutter build apk --debug --flavor development --dart-define-from-file=config/development.json
 supabase test db
 supabase db lint --local --level warning
 git diff --check
 ```
 
-Signed AAB and IPA jobs remain unavailable until signing/account secrets exist. iOS local verification additionally requires full Xcode.
+Build signed Android AAB after configuring `android/key.properties` and
+`config/production.json`:
+
+```bash
+flutter build appbundle --release --flavor production \
+  --dart-define-from-file=config/production.json
+```
+
+Build iOS IPA after configuring Apple signing and full Xcode:
+
+```bash
+flutter build ipa --release --flavor production \
+  --export-options-plist=ios/ExportOptions.local.plist \
+  --dart-define-from-file=config/production.json
+```

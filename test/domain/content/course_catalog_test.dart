@@ -49,6 +49,25 @@ void main() {
     },
   );
 
+  test('word puzzle uses the approved sentence order', () {
+    final wordPuzzle = catalog.activity('unit-02-01');
+
+    expect(
+      wordPuzzle.options,
+      orderedEquals(['AI chatbots', 'questions', 'answer', 'using', 'words']),
+    );
+    expect(wordPuzzle.correctSequence, orderedEquals([0, 2, 1, 3, 4]));
+    expect(
+      wordPuzzle.correctSequence
+          .map((index) => wordPuzzle.options[index])
+          .join(' '),
+      'AI chatbots answer questions using words',
+    );
+
+    final prompting = catalog.activity('unit-03-01');
+    expect(prompting.correct, equals({0, 1}));
+  });
+
   test('manifest validation rejects duplicate activity identifiers', () {
     final source = File(
       'assets/content/course_manifest.json',

@@ -60,7 +60,7 @@
       "body": "Hi! I’m BearFetch Bot. Ask me a question, and I’ll reply with an answer.",
       "kind": "select",
       "options": ["What is an AI chatbot?", "Where do chatbots appear?", "What can a chatbot do?"],
-      "correct": [0],
+      "correct": [0, 1, 2],
       "nextActivityId": "unit-02-01",
       "rewardId": "activity-unit-01-04"
     },
@@ -74,9 +74,9 @@
       "subtitle": "Put the word pieces in the correct order.",
       "body": "Words can be split into smaller parts called tokens. Build the sentence below.",
       "kind": "sequence",
-      "options": ["AI chatbots", "answer", "questions", "using", "words"],
+      "options": ["AI chatbots", "questions", "answer", "using", "words"],
       "correct": [0, 1, 2, 3, 4],
-      "correctSequence": [0, 1, 2, 3, 4],
+      "correctSequence": [0, 2, 1, 3, 4],
       "nextActivityId": "unit-02-02",
       "rewardId": "activity-unit-02-01"
     },
@@ -121,7 +121,7 @@
       "body": "Better prompt: “Tell me 3 fun facts about Mars for kids in short sentences.”\n\nThe answer gives clear, short, kid-friendly facts.",
       "kind": "multiSelect",
       "options": ["It gave a clear topic", "It asked for short sentences", "It asked for a kid-friendly answer"],
-      "correct": [0, 1, 2],
+      "correct": [0, 1],
       "nextActivityId": "unit-03-02",
       "rewardId": "activity-unit-03-01"
     },

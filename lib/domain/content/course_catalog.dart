@@ -167,6 +167,13 @@ class CourseCatalog {
       )) {
         throw FormatException('${activity.id} correct answer is invalid.');
       }
+      if (activity.kind == ActivityKind.sequence &&
+          (activity.correctSequence.length != activity.correct.length ||
+              activity.correctSequence.toSet().length !=
+                  activity.correctSequence.length ||
+              !activity.correct.containsAll(activity.correctSequence))) {
+        throw FormatException('${activity.id} correct sequence is invalid.');
+      }
     }
   }
 }

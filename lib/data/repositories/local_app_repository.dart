@@ -486,6 +486,27 @@ class LocalAppRepository
       });
 
   @override
+  Future<bool> unequip({required String slot}) =>
+      database.transaction(() async {
+        final learner = await _requireLearner();
+        final deleted =
+            await (database.delete(database.equippedAccessories)..where(
+                  (row) =>
+                      row.learnerId.equals(learner.id) & row.slot.equals(slot),
+                ))
+                .go();
+        if (deleted == 0) return false;
+        final now = DateTime.now();
+        await _queueEvent(
+          eventId: 'unequip:$slot:${now.microsecondsSinceEpoch}',
+          operation: 'unequip_accessory',
+          payload: {'slot': slot},
+          now: now,
+        );
+        return true;
+      });
+
+  @override
   Future<int> pendingEventCount() async => (await (database.select(
     database.syncOutbox,
   )..where((row) => row.syncedAt.isNull())).get()).length;

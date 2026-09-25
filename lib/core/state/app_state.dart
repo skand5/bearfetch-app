@@ -210,4 +210,10 @@ class AppStateController extends AsyncNotifier<AppViewState> {
     await refresh();
     return equipped;
   }
+
+  Future<bool> unequip({required String slot}) async {
+    final removed = await ref.read(shopRepositoryProvider).unequip(slot: slot);
+    await refresh();
+    return removed;
+  }
 }

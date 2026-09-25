@@ -114,7 +114,10 @@ class AuthFlowController extends AsyncNotifier<AuthFlowState> {
   }
 
   Future<void> signOut() async {
-    await ref.read(authRepositoryProvider).signOut();
+    await Future.wait([
+      ref.read(authRepositoryProvider).signOut(),
+      ref.read(progressInsightPurchaseRepositoryProvider).signOut(),
+    ]);
     state = const AsyncData(AuthFlowState(status: AuthFlowStatus.signedOut));
   }
 }

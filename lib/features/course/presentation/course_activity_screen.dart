@@ -9,8 +9,17 @@ import '../../../core/widgets/bearfetch_ui.dart';
 import '../../../domain/content/course_catalog.dart' as content;
 
 class CourseActivityScreen extends ConsumerStatefulWidget {
-  const CourseActivityScreen({super.key, required this.activityId});
+  const CourseActivityScreen({
+    super.key,
+    required this.activityId,
+    this.chatbotTypeIndex,
+  });
+
   final String activityId;
+
+  /// Ephemeral scripted-simulation choice. It travels only through this
+  /// course route; it is never written to learner data or the sync outbox.
+  final int? chatbotTypeIndex;
   @override
   ConsumerState<CourseActivityScreen> createState() =>
       _CourseActivityScreenState();
@@ -22,6 +31,8 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
   Timer? _lessonRevealTimer;
   int _lessonRevealCount = 0;
   int? _activeChatQuestion;
+  int? _activeStyleIndex;
+  bool _botTestPromptTried = false;
 
   content.ActivityDefinition get activity =>
       ref.read(content.courseCatalogProvider).activity(widget.activityId);
@@ -58,34 +69,8 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
     selected.clear();
     sequence.clear();
     _activeChatQuestion = null;
-    if (widget.activityId == 'unit-01-03') {
-      selected.add(0);
-    } else if (widget.activityId == 'unit-02-02') {
-      selected.add(0);
-    } else if (widget.activityId == 'unit-02-03') {
-      selected.add(0);
-    } else if (widget.activityId == 'unit-03-01') {
-      selected.addAll({0, 1});
-    } else if (widget.activityId == 'unit-03-02') {
-      selected.add(0);
-    } else if (widget.activityId == 'unit-03-03') {
-      selected.add(2);
-    } else if (widget.activityId == 'unit-04-01') {
-      selected.add(1);
-      sequence.add(1);
-    } else if (widget.activityId == 'unit-04-02') {
-      selected.add(1);
-    } else if (widget.activityId == 'unit-04-03') {
-      selected.addAll({0, 4, 8});
-    } else if (widget.activityId == 'unit-04-04') {
-      selected.add(0);
-    } else if (widget.activityId == 'unit-04-05') {
-      selected.add(2);
-    } else if (widget.activityId == 'unit-04-06') {
-      selected.add(2);
-    } else if (widget.activityId == 'unit-04-07') {
-      selected.add(0);
-    }
+    _activeStyleIndex = null;
+    _botTestPromptTried = false;
   }
 
   void _startLessonReveal() {
@@ -118,6 +103,11 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
         // tried once and the latest reply remains visible in the chat panel.
         selected.add(index);
         _activeChatQuestion = index;
+      } else if (widget.activityId == 'unit-03-02') {
+        // Tone exploration is deliberately not a scored choice. Keep track of
+        // every tone the learner tries, while rendering only the latest one.
+        selected.add(index);
+        _activeStyleIndex = index;
       } else if (activity.kind == content.ActivityKind.multiSelect) {
         selected.contains(index) ? selected.remove(index) : selected.add(index);
       } else if (activity.kind == content.ActivityKind.sequence) {
@@ -146,6 +136,78 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
         return;
       }
       context.go('/result/${activity.id}?correct=true');
+      return;
+    }
+    if (widget.activityId == 'unit-03-02') {
+      if (selected.length < activity.options.length) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Try Funny, Serious, and Friendly before continuing.',
+            ),
+          ),
+        );
+        return;
+      }
+      context.go('/result/${activity.id}?correct=true');
+      return;
+    }
+    if (widget.activityId == 'unit-04-01') {
+      // Chat Screen is the fixed, already-placed first component in the
+      // design. The learner places the other four components in slots 2–5.
+      const expectedParts = [0, 2, 3, 4];
+      final isCorrect =
+          selected.length == expectedParts.length &&
+          selected.containsAll(expectedParts) &&
+          sequence.length == expectedParts.length &&
+          List.generate(
+            expectedParts.length,
+            (index) => sequence[index] == expectedParts[index],
+          ).every((matches) => matches);
+      context.go('/result/${activity.id}?correct=$isCorrect');
+      return;
+    }
+    if (widget.activityId == 'unit-04-05') {
+      if (selected.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Choose a chatbot type to continue.')),
+        );
+        return;
+      }
+      // This is a choice, not a quiz. The selected type configures the next
+      // scripted training-example simulation without being persisted.
+      context.go(
+        '/result/${activity.id}?correct=true&chatbotType=${selected.first}',
+      );
+      return;
+    }
+    if (widget.activityId == 'unit-04-06') {
+      if (selected.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Choose matching training examples.')),
+        );
+        return;
+      }
+      final expectedExample = widget.chatbotTypeIndex ?? 2;
+      context.go(
+        '/result/${activity.id}?correct=${selected.single == expectedExample}&chatbotType=$expectedExample',
+      );
+      return;
+    }
+    if (widget.activityId == 'unit-04-07') {
+      if (!_botTestPromptTried) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Try the example prompt first.')),
+        );
+        return;
+      }
+      if (selected.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Choose whether the response helped.')),
+        );
+        return;
+      }
+      context.go('/result/${activity.id}?correct=${selected.single == 0}');
       return;
     }
     if (activity.kind == content.ActivityKind.lesson) {
@@ -551,12 +613,12 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
       );
     }
     if (a.id == 'unit-02-01') {
-      const words = [
-        ('AI chatbots', 124.0, 835.0, 142.0, Color(0xFF7DE8D2)),
-        ('questions', 71.0, 898.0, 127.0, Color(0xFFFFCEB8)),
-        ('answer', 212.0, 898.0, 108.0, Color(0xFFFFCEB8)),
-        ('using', 92.0, 961.0, 92.0, Color(0xFFCDB0F5)),
-        ('words', 199.0, 961.0, 100.0, Color(0xFF99CEE8)),
+      final words = [
+        (a.options[0], 124.0, 835.0, 142.0, const Color(0xFF7DE8D2)),
+        (a.options[1], 71.0, 898.0, 127.0, const Color(0xFFFFCEB8)),
+        (a.options[2], 212.0, 898.0, 108.0, const Color(0xFFFFCEB8)),
+        (a.options[3], 92.0, 961.0, 92.0, const Color(0xFFCDB0F5)),
+        (a.options[4], 199.0, 961.0, 100.0, const Color(0xFF99CEE8)),
       ];
       const slotTops = [428.0, 496.0, 565.0, 633.0, 701.0];
       return Scaffold(
@@ -689,62 +751,25 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                     );
                 },
               ),
-              if (groupSelections[0] != null && groupSelections[0] != 0) ...[
-                _ArtworkPredictionBlank(
-                  left: 241,
-                  top: 323,
-                  width: 89,
-                  label: choices[groupSelections[0]!].$1,
+              for (var group = 0; group < 3; group++)
+                _ArtworkPredictionSlot(
+                  left: [241.0, 246.0, 213.0][group],
+                  top: [323.0, 499.0, 662.0][group],
+                  width: [89.0, 94.0, 94.0][group],
+                  height: group == 0 ? 50 : 40,
+                  label: groupSelections[group] == null
+                      ? null
+                      : choices[groupSelections[group]!].$1,
                 ),
-                const _ArtworkPredictionChoice(
-                  left: 44,
-                  top: 395,
-                  width: 74,
-                  label: 'honey',
-                  selected: false,
-                ),
+              for (var index = 0; index < choices.length; index++)
                 _ArtworkPredictionChoice(
-                  left: choices[groupSelections[0]!].$2,
-                  top: choices[groupSelections[0]!].$3,
-                  width: choices[groupSelections[0]!].$4,
-                  label: choices[groupSelections[0]!].$1,
-                  selected: true,
+                  left: choices[index].$2,
+                  top: choices[index].$3,
+                  width: choices[index].$4,
+                  label: choices[index].$1,
+                  selected: groupSelections[index ~/ 3] == index,
+                  height: index < 3 ? 38 : 34,
                 ),
-              ],
-              if (groupSelections[1] case final choice?) ...[
-                _ArtworkPredictionBlank(
-                  left: 246,
-                  top: 499,
-                  width: 94,
-                  label: choices[choice].$1,
-                  height: 40,
-                ),
-                _ArtworkPredictionChoice(
-                  left: choices[choice].$2,
-                  top: choices[choice].$3,
-                  width: choices[choice].$4,
-                  label: choices[choice].$1,
-                  selected: true,
-                  height: 34,
-                ),
-              ],
-              if (groupSelections[2] case final choice?) ...[
-                _ArtworkPredictionBlank(
-                  left: 213,
-                  top: 662,
-                  width: 94,
-                  label: choices[choice].$1,
-                  height: 40,
-                ),
-                _ArtworkPredictionChoice(
-                  left: choices[choice].$2,
-                  top: choices[choice].$3,
-                  width: choices[choice].$4,
-                  label: choices[choice].$1,
-                  selected: true,
-                  height: 34,
-                ),
-              ],
               for (var index = 0; index < choices.length; index++)
                 _ArtworkHitTarget(
                   label: choices[index].$1,
@@ -787,7 +812,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
       );
     }
     if (a.id == 'unit-02-03') {
-      final selectedReply = selected.isEmpty ? 0 : selected.first;
+      final selectedReply = selected.isEmpty ? null : selected.first;
       return Scaffold(
         body: SafeArea(
           child: _ActivityArtwork(
@@ -821,28 +846,26 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                     );
                 },
               ),
-              if (selectedReply == 1) ...[
-                const _ArtworkMemoryReplyCard(
-                  top: 721,
-                  height: 194,
-                  reply: 'Reply A:',
-                  body:
-                      'Mars is called the Red Planet. It has dusty red soil, tall volcanoes, and two small moons.',
-                  tag: 'Uses memory',
-                  positiveTag: true,
-                  selected: false,
-                ),
-                const _ArtworkMemoryReplyCard(
-                  top: 932,
-                  height: 166,
-                  reply: 'Reply B:',
-                  body:
-                      'Which planet do you mean? Please tell me the planet name first.',
-                  tag: 'No memory',
-                  positiveTag: false,
-                  selected: true,
-                ),
-              ],
+              _ArtworkMemoryReplyCard(
+                top: 721,
+                height: 194,
+                reply: 'Reply A:',
+                body:
+                    'Mars is called the Red Planet. It has dusty red soil, tall volcanoes, and two small moons.',
+                tag: 'Uses memory',
+                positiveTag: true,
+                selected: selectedReply == 0,
+              ),
+              _ArtworkMemoryReplyCard(
+                top: 932,
+                height: 166,
+                reply: 'Reply B:',
+                body:
+                    'Which planet do you mean? Please tell me the planet name first.',
+                tag: 'No memory',
+                positiveTag: false,
+                selected: selectedReply == 1,
+              ),
               _ArtworkHitTarget(
                 label: 'Reply A uses memory',
                 left: 20,
@@ -932,23 +955,11 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                     );
                 },
               ),
-              if (!selected.contains(0))
-                const _ArtworkMultiSelectOption(
-                  top: 1194,
-                  label: 'It gave a clear topic',
-                  selected: false,
-                ),
-              if (!selected.contains(1))
-                const _ArtworkMultiSelectOption(
-                  top: 1258,
-                  label: 'It asked for short sentences',
-                  selected: false,
-                ),
-              if (selected.contains(2))
-                const _ArtworkMultiSelectOption(
-                  top: 1322,
-                  label: 'It asked for a kid-friendly answer',
-                  selected: true,
+              for (var index = 0; index < answerRows.length; index++)
+                _ArtworkMultiSelectOption(
+                  top: answerRows[index].$2,
+                  label: answerRows[index].$1,
+                  selected: selected.contains(index),
                 ),
               for (var index = 0; index < answerRows.length; index++)
                 _ArtworkHitTarget(
@@ -997,13 +1008,17 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
         ('Serious', 795.0),
         ('Friendly', 894.0),
       ];
-      final selectedStyle = selected.isEmpty ? 0 : selected.first;
+      final int? selectedStyle = _activeStyleIndex;
       return Scaffold(
         body: SafeArea(
           child: _ActivityArtwork(
             semanticLabel: a.title,
             assetPath: 'assets/illustrations/unit_03_02.png',
             assetHeight: 1195,
+            // The Figma export has an opaque black tail below the final action
+            // row. It is outside the designed screen content, so retain the
+            // artwork but restore the intended page background in that tail.
+            artworkTailFillTop: 1152,
             hitTargets: [
               _ArtworkHitTarget(
                 label: 'Back to Courses',
@@ -1031,15 +1046,14 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                     );
                 },
               ),
-              if (selectedStyle != 0) ...[
+              if (selectedStyle != null && selectedStyle != 0)
                 _ArtworkStyleAnswer(styleIndex: selectedStyle),
-                for (var index = 0; index < styleRows.length; index++)
-                  _ArtworkStyleOption(
-                    top: styleRows[index].$2,
-                    styleIndex: index,
-                    selected: selectedStyle == index,
-                  ),
-              ],
+              for (var index = 0; index < styleRows.length; index++)
+                _ArtworkStyleOption(
+                  top: styleRows[index].$2,
+                  styleIndex: index,
+                  selected: selectedStyle == index,
+                ),
               for (var index = 0; index < styleRows.length; index++)
                 _ArtworkHitTarget(
                   label: '${styleRows[index].$1} style',
@@ -1087,7 +1101,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
         ('Be Complicated', 746.0),
         ('Be Respectful', 833.0),
       ];
-      final selectedRole = selected.isEmpty ? 2 : selected.first;
+      final int? selectedRole = selected.isEmpty ? null : selected.first;
       return Scaffold(
         body: SafeArea(
           child: _ActivityArtwork(
@@ -1121,13 +1135,12 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                     );
                 },
               ),
-              if (selectedRole != 2)
-                for (var index = 0; index < roleRows.length; index++)
-                  _ArtworkRoleOption(
-                    top: roleRows[index].$2,
-                    roleIndex: index,
-                    selected: selectedRole == index,
-                  ),
+              for (var index = 0; index < roleRows.length; index++)
+                _ArtworkRoleOption(
+                  top: roleRows[index].$2,
+                  roleIndex: index,
+                  selected: selectedRole == index,
+                ),
               for (var index = 0; index < roleRows.length; index++)
                 _ArtworkHitTarget(
                   label: roleRows[index].$1,
@@ -1211,19 +1224,19 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                     );
                 },
               ),
-              for (var slot = 1; slot < sequence.length; slot++)
+              for (var slot = 0; slot < sequence.length; slot++)
                 _ArtworkSystemSlot(
-                  top: slotTops[slot],
+                  top: slotTops[slot + 1],
                   label: parts[sequence[slot]].$1,
                   color: parts[sequence[slot]].$5,
                   partIndex: sequence[slot],
                 ),
-              for (var slot = 1; slot < sequence.length; slot++)
+              for (var slot = 0; slot < sequence.length; slot++)
                 _ArtworkHitTarget(
                   label:
-                      'Remove ${parts[sequence[slot]].$1} from slot ${slot + 1}',
+                      'Remove ${parts[sequence[slot]].$1} from slot ${slot + 2}',
                   left: 44,
-                  top: slotTops[slot],
+                  top: slotTops[slot + 1],
                   width: 300,
                   height: 61,
                   selected: true,
@@ -1279,14 +1292,13 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
       );
     }
     if (a.id == 'unit-04-02') {
-      final selectedLayout = selected.isEmpty ? 1 : selected.first;
+      final int? selectedLayout = selected.isEmpty ? null : selected.first;
       return Scaffold(
         body: SafeArea(
           child: _ActivityArtwork(
             semanticLabel: a.title,
             assetPath: 'assets/illustrations/unit_04_02.png',
             assetHeight: 1130,
-            contentHeight: 1106,
             hitTargets: [
               _ArtworkHitTarget(
                 label: 'Back to Courses',
@@ -1314,20 +1326,20 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                     );
                 },
               ),
-              if (selectedLayout == 0) const _ArtworkUiLayoutSelection(),
+              _ArtworkUiLayoutSelection(selectedIndex: selectedLayout),
               _ArtworkHitTarget(
                 label: 'Streaming Layout',
                 left: 20,
-                top: 316,
+                top: 340,
                 width: 349,
-                height: 294,
+                height: 298,
                 selected: selectedLayout == 0,
                 onTap: () => _toggle(0),
               ),
               _ArtworkHitTarget(
                 label: 'BearFetch Chat',
                 left: 20,
-                top: 630,
+                top: 654,
                 width: 349,
                 height: 299,
                 selected: selectedLayout == 1,
@@ -1336,7 +1348,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
               _ArtworkHitTarget(
                 label: 'Hint',
                 left: 20,
-                top: 1041,
+                top: 1065,
                 width: 51,
                 height: 51,
                 onTap: () {
@@ -1462,7 +1474,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
       );
     }
     if (a.id == 'unit-04-04') {
-      final selectedAnswer = selected.isEmpty ? 0 : selected.first;
+      final int? selectedAnswer = selected.isEmpty ? null : selected.first;
       return Scaffold(
         body: SafeArea(
           child: _ActivityArtwork(
@@ -1496,8 +1508,9 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                     );
                 },
               ),
-              if (selectedAnswer == 1)
-                const _ArtworkYesNoSelection(selectYes: false),
+              _ArtworkYesNoSelection(
+                selectYes: selectedAnswer == null ? null : selectedAnswer == 0,
+              ),
               _ArtworkHitTarget(
                 label: 'Yes',
                 left: 20,
@@ -1548,7 +1561,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
       );
     }
     if (a.id == 'unit-04-05') {
-      final selectedBot = selected.isEmpty ? 2 : selected.first;
+      final int? selectedBot = selected.isEmpty ? null : selected.first;
       const cardBounds = [
         (20.0, 514.0, 338.0, 136.0),
         (20.0, 665.0, 338.0, 112.0),
@@ -1560,7 +1573,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
           child: _ActivityArtwork(
             semanticLabel: a.title,
             assetPath: 'assets/illustrations/unit_04_05.png',
-            assetHeight: 1211,
+            assetHeight: 1213,
             hitTargets: [
               _ArtworkHitTarget(
                 label: 'Back to Courses',
@@ -1588,8 +1601,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                     );
                 },
               ),
-              if (selectedBot != 2)
-                _ArtworkChatbotTypeCards(selectedIndex: selectedBot),
+              _ArtworkChatbotTypeCards(selectedIndex: selectedBot),
               for (var index = 0; index < cardBounds.length; index++)
                 _ArtworkHitTarget(
                   label: a.options[index],
@@ -1632,12 +1644,13 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
       );
     }
     if (a.id == 'unit-04-06') {
-      final selectedExample = selected.isEmpty ? 2 : selected.first;
+      final int? selectedExample = selected.isEmpty ? null : selected.first;
+      final chatbotTypeIndex = widget.chatbotTypeIndex;
       const cardBounds = [
-        (20.0, 675.0, 348.0, 220.0),
-        (20.0, 912.0, 348.0, 221.0),
-        (16.0, 1148.0, 354.0, 292.0),
-        (20.0, 1457.0, 348.0, 258.0),
+        (20.0, 674.0, 350.0, 218.0),
+        (20.0, 912.0, 350.0, 218.0),
+        (16.0, 1147.0, 358.0, 259.0),
+        (20.0, 1456.0, 350.0, 218.0),
       ];
       return Scaffold(
         body: SafeArea(
@@ -1645,6 +1658,13 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
             semanticLabel: a.title,
             assetPath: 'assets/illustrations/unit_04_06.png',
             assetHeight: 1841,
+            overlays: [
+              // The approved Figma frame is the Study Coach variation. Keep it
+              // untouched for the initial route and for Study Coach; only the
+              // other locally selected bot types replace this contextual copy.
+              if (chatbotTypeIndex != null && chatbotTypeIndex != 2)
+                _ArtworkChatbotTrainingSummary(botIndex: chatbotTypeIndex),
+            ],
             hitTargets: [
               _ArtworkHitTarget(
                 label: 'Back to Courses',
@@ -1672,8 +1692,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                     );
                 },
               ),
-              if (selectedExample != 2)
-                _ArtworkTrainingSelection(selectedIndex: selectedExample),
+              _ArtworkTrainingSelection(selectedIndex: selectedExample),
               for (var index = 0; index < cardBounds.length; index++)
                 _ArtworkHitTarget(
                   label: a.options[index],
@@ -1716,13 +1735,22 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
       );
     }
     if (a.id == 'unit-04-07') {
-      final selectedResponse = selected.isEmpty ? 0 : selected.first;
+      final int? selectedResponse = selected.isEmpty ? null : selected.first;
       return Scaffold(
         body: SafeArea(
           child: _ActivityArtwork(
             semanticLabel: a.title,
             assetPath: 'assets/illustrations/unit_04_07.png',
             assetHeight: 1261,
+            overlays: [
+              _ArtworkBotTestOutput(promptTried: _botTestPromptTried),
+              if (_botTestPromptTried)
+                _ArtworkBotTestSelection(
+                  selectYes: selectedResponse == null
+                      ? null
+                      : selectedResponse == 0,
+                ),
+            ],
             hitTargets: [
               _ArtworkHitTarget(
                 label: 'Back to Courses',
@@ -1753,41 +1781,33 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
               _ArtworkHitTarget(
                 label: 'Try Example Prompt',
                 left: 47,
-                top: 863,
+                top: _botTestPromptTried ? 863 : 562,
                 width: 297,
                 height: 57,
                 onTap: () {
-                  ScaffoldMessenger.of(context)
-                    ..hideCurrentSnackBar()
-                    ..showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Example prompt completed. Review the bot response below.',
-                        ),
-                      ),
-                    );
+                  setState(() => _botTestPromptTried = true);
                 },
               ),
-              if (selectedResponse == 1)
-                const _ArtworkBotTestSelection(selectYes: false),
-              _ArtworkHitTarget(
-                label: 'Yes, it helped',
-                left: 20,
-                top: 1021,
-                width: 180,
-                height: 56,
-                selected: selectedResponse == 0,
-                onTap: () => _toggle(0),
-              ),
-              _ArtworkHitTarget(
-                label: 'Not yet',
-                left: 213,
-                top: 1021,
-                width: 156,
-                height: 56,
-                selected: selectedResponse == 1,
-                onTap: () => _toggle(1),
-              ),
+              if (_botTestPromptTried) ...[
+                _ArtworkHitTarget(
+                  label: 'Yes, it helped',
+                  left: 20,
+                  top: 1021,
+                  width: 180,
+                  height: 56,
+                  selected: selectedResponse == 0,
+                  onTap: () => _toggle(0),
+                ),
+                _ArtworkHitTarget(
+                  label: 'Not yet',
+                  left: 213,
+                  top: 1021,
+                  width: 156,
+                  height: 56,
+                  selected: selectedResponse == 1,
+                  onTap: () => _toggle(1),
+                ),
+              ],
               _ArtworkHitTarget(
                 label: 'Hint',
                 left: 20,
@@ -1962,6 +1982,7 @@ class _ActivityArtwork extends StatelessWidget {
     required this.hitTargets,
     this.overlays = const [],
     this.contentHeight,
+    this.artworkTailFillTop,
   });
 
   static const _designWidth = 390.0;
@@ -1970,6 +1991,7 @@ class _ActivityArtwork extends StatelessWidget {
   final String assetPath;
   final double assetHeight;
   final double? contentHeight;
+  final double? artworkTailFillTop;
   final List<Widget> hitTargets;
   final List<Widget> overlays;
 
@@ -2008,6 +2030,14 @@ class _ActivityArtwork extends StatelessWidget {
                           excludeFromSemantics: true,
                         ),
                       ),
+                      if (artworkTailFillTop != null)
+                        Positioned(
+                          left: 0,
+                          top: artworkTailFillTop!,
+                          width: _designWidth,
+                          height: assetHeight - artworkTailFillTop!,
+                          child: const ColoredBox(color: Color(0xFFFFF8EF)),
+                        ),
                       ...overlays,
                       ...hitTargets,
                     ],
@@ -2642,8 +2672,8 @@ class _ArtworkPlacedWordChip extends StatelessWidget {
   );
 }
 
-class _ArtworkPredictionBlank extends StatelessWidget {
-  const _ArtworkPredictionBlank({
+class _ArtworkPredictionSlot extends StatelessWidget {
+  const _ArtworkPredictionSlot({
     required this.left,
     required this.top,
     required this.width,
@@ -2654,7 +2684,7 @@ class _ArtworkPredictionBlank extends StatelessWidget {
   final double left;
   final double top;
   final double width;
-  final String label;
+  final String? label;
   final double height;
 
   @override
@@ -2667,23 +2697,32 @@ class _ArtworkPredictionBlank extends StatelessWidget {
       child: Container(
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: const Color(0xFFFFCEB8),
-          border: Border.all(color: const Color(0xFFFF9F43), width: 2),
+          color: label == null
+              ? const Color(0xFFFFFDF8)
+              : const Color(0xFFFFCEB8),
+          border: Border.all(
+            color: label == null
+                ? const Color(0xFFDCC9BA)
+                : const Color(0xFFFF9F43),
+            width: 2,
+          ),
           borderRadius: BorderRadius.circular(12),
           boxShadow: const [
             BoxShadow(color: Color(0xFFFF9F43), offset: Offset(0, 4)),
           ],
         ),
-        child: Text(
-          label,
-          maxLines: 1,
-          style: const TextStyle(
-            fontFamily: 'Nunito',
-            fontSize: 15,
-            fontWeight: FontWeight.w900,
-            color: Color(0xFFFFA45E),
-          ),
-        ),
+        child: label == null
+            ? null
+            : Text(
+                label!,
+                maxLines: 1,
+                style: const TextStyle(
+                  fontFamily: 'Nunito',
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFFFFA45E),
+                ),
+              ),
       ),
     ),
   );
@@ -2762,120 +2801,256 @@ class _ArtworkMemoryReplyCard extends StatelessWidget {
     top: top,
     width: 350,
     height: height,
-    child: IgnorePointer(
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(25, 25, 46, 20),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFFFFD6BF) : const Color(0xFFFBF9F1),
-          border: Border.all(
-            color: selected ? const Color(0xFF9B5700) : const Color(0xFF4B3333),
-            width: 2,
-          ),
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            BoxShadow(
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompressed = constraints.maxHeight < 180;
+        final padding = isCompressed
+            ? const EdgeInsets.fromLTRB(18, 14, 38, 10)
+            : const EdgeInsets.fromLTRB(25, 25, 46, 20);
+        final bodyFontSize = isCompressed ? 11.5 : 16.0;
+        final bodyHeight = isCompressed ? 1.3 : 1.45;
+        final tagFontSize = isCompressed ? 9.0 : 12.0;
+
+        return IgnorePointer(
+          child: Container(
+            padding: padding,
+            decoration: BoxDecoration(
               color: selected
-                  ? const Color(0xFF9B5700)
-                  : const Color(0xFF4B3333),
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned.fill(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: '$reply ',
-                          style: const TextStyle(fontWeight: FontWeight.w900),
-                        ),
-                        TextSpan(text: body),
-                      ],
-                    ),
-                    style: const TextStyle(
-                      fontFamily: 'Nunito',
-                      fontSize: 16,
-                      height: 1.45,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF171713),
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: positiveTag
-                          ? const Color(0xFFE5F3DE)
-                          : const Color(0xFFFFF0EA),
-                      border: Border.all(
-                        color: positiveTag
-                            ? const Color(0xFF72DDC5)
-                            : const Color(0xFFD91F26),
-                      ),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      '${positiveTag ? '⚙' : '⊘'} $tag',
-                      style: TextStyle(
-                        fontFamily: 'Nunito',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
-                        color: positiveTag
-                            ? const Color(0xFF007B63)
-                            : const Color(0xFFD91F26),
-                      ),
-                    ),
-                  ),
-                ],
+                  ? const Color(0xFFFFD6BF)
+                  : const Color(0xFFFBF9F1),
+              border: Border.all(
+                color: selected
+                    ? const Color(0xFF9B5700)
+                    : const Color(0xFF4B3333),
+                width: 2,
               ),
-            ),
-            Positioned(
-              right: -20,
-              top: -3,
-              child: Container(
-                width: 25,
-                height: 25,
-                decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
                   color: selected
                       ? const Color(0xFF9B5700)
-                      : Colors.transparent,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: selected
-                        ? const Color(0xFF9B5700)
-                        : const Color(0xFF4B3333),
-                    width: 2,
+                      : const Color(0xFF4B3333),
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned.fill(
+                  child: SingleChildScrollView(
+                    physics: const NeverScrollableScrollPhysics(),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '$reply ',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              TextSpan(text: body),
+                            ],
+                          ),
+                          style:
+                              const TextStyle(
+                                fontFamily: 'Nunito',
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF171713),
+                              ).copyWith(
+                                fontSize: bodyFontSize,
+                                height: bodyHeight,
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: positiveTag
+                                ? const Color(0xFFE5F3DE)
+                                : const Color(0xFFFFF0EA),
+                            border: Border.all(
+                              color: positiveTag
+                                  ? const Color(0xFF72DDC5)
+                                  : const Color(0xFFD91F26),
+                            ),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '${positiveTag ? '⚙' : '⊘'} $tag',
+                            style: TextStyle(
+                              fontFamily: 'Nunito',
+                              fontSize: tagFontSize,
+                              fontWeight: FontWeight.w900,
+                              color: positiveTag
+                                  ? const Color(0xFF007B63)
+                                  : const Color(0xFFD91F26),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                child: selected
-                    ? const Icon(
-                        Icons.check_rounded,
-                        size: 17,
+                Positioned(
+                  right: -20,
+                  top: -3,
+                  child: Container(
+                    width: 25,
+                    height: 25,
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? const Color(0xFF9B5700)
+                          : Colors.transparent,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: selected
+                            ? const Color(0xFF9B5700)
+                            : const Color(0xFF4B3333),
+                        width: 2,
+                      ),
+                    ),
+                    child: selected
+                        ? const Icon(
+                            Icons.check_rounded,
+                            size: 17,
+                            color: Colors.white,
+                          )
+                        : null,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    ),
+  );
+}
+
+class _ArtworkBotTestOutput extends StatelessWidget {
+  const _ArtworkBotTestOutput({required this.promptTried});
+
+  final bool promptTried;
+
+  @override
+  Widget build(BuildContext context) {
+    if (promptTried) return const SizedBox.shrink();
+
+    // The exported artwork is the expanded, post-prompt state. Cover it with
+    // the compact Figma default state until the learner taps the prompt.
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Stack(
+          children: [
+            const Positioned(
+              left: 0,
+              top: 461,
+              width: 390,
+              height: 659,
+              child: ColoredBox(color: Color(0xFFFFF8EF)),
+            ),
+            Positioned(
+              left: 20,
+              top: 461,
+              width: 350,
+              height: 184,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(26, 25, 26, 24),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4F2EA),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFF293033), width: 2),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x1A293033), offset: Offset(0, 7)),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons.psychology_alt_outlined,
+                          color: Color(0xFF9B5700),
+                          size: 24,
+                        ),
+                        SizedBox(width: 9),
+                        Text(
+                          'Bot Output',
+                          style: TextStyle(
+                            fontFamily: 'Nunito',
+                            fontSize: 21,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF9B5700),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 17),
+                    const Divider(height: 2, color: Color(0xFFE0DDD4)),
+                    const Spacer(),
+                    Container(
+                      height: 57,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
                         color: Colors.white,
-                      )
-                    : null,
+                        border: Border.all(
+                          color: const Color(0xFF293033),
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(29),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0xFF293033),
+                            offset: Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.play_arrow_rounded, size: 30),
+                              SizedBox(width: 7),
+                              Text(
+                                'Try Example Prompt',
+                                style: TextStyle(
+                                  fontFamily: 'Nunito',
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF293033),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _ArtworkBotTestSelection extends StatelessWidget {
   const _ArtworkBotTestSelection({required this.selectYes});
 
-  final bool selectYes;
+  final bool? selectYes;
 
   @override
   Widget build(BuildContext context) {
@@ -2920,14 +3095,17 @@ class _ArtworkBotTestSelection extends StatelessWidget {
                 const SizedBox(width: 8),
               ],
               Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  style: const TextStyle(
-                    fontFamily: 'Nunito',
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF293033),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      fontFamily: 'Nunito',
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF293033),
+                    ),
                   ),
                 ),
               ),
@@ -2943,10 +3121,115 @@ class _ArtworkBotTestSelection extends StatelessWidget {
           left: 20,
           width: 180,
           label: 'Yes, it helped',
-          selected: selectYes,
+          selected: selectYes == true,
         ),
-        option(left: 213, width: 156, label: 'Not yet', selected: !selectYes),
+        option(
+          left: 213,
+          width: 156,
+          label: 'Not yet',
+          selected: selectYes == false,
+        ),
       ],
+    );
+  }
+}
+
+class _ArtworkChatbotTrainingSummary extends StatelessWidget {
+  const _ArtworkChatbotTrainingSummary({required this.botIndex});
+
+  final int botIndex;
+
+  static const _names = ['Math Bot', 'Fun Bot', 'Study Coach', 'Helper Bot'];
+  static const _descriptions = [
+    'This bot helps with\nmath questions and\nclear solutions.',
+    'This bot shares jokes,\nfun facts, and\nplayful answers.',
+    'This bot helps with\nstudy tips and\nreminders.',
+    'This bot answers\ngeneral questions and\ngives support.',
+  ];
+  static const _icons = [
+    Icons.calculate_rounded,
+    Icons.star_rounded,
+    Icons.emoji_events_rounded,
+    Icons.support_agent_rounded,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final index = botIndex.clamp(0, _names.length - 1).toInt();
+    return Positioned(
+      left: 20,
+      top: 452,
+      width: 348,
+      height: 186,
+      child: IgnorePointer(
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(25, 25, 20, 20),
+          decoration: BoxDecoration(
+            color: const Color(0xFFB0F2C2),
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(color: const Color(0xFF4B3333), width: 3),
+            boxShadow: const [
+              BoxShadow(color: Color(0xFF4B3333), offset: Offset(0, 7)),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFF4B3333), width: 2),
+                ),
+                child: Icon(
+                  _icons[index],
+                  size: 32,
+                  color: const Color(0xFF00796B),
+                ),
+              ),
+              const SizedBox(width: 17),
+              Expanded(
+                child: FittedBox(
+                  alignment: Alignment.topLeft,
+                  fit: BoxFit.scaleDown,
+                  child: SizedBox(
+                    width: 216,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Your chatbot: ${_names[index]}',
+                          style: const TextStyle(
+                            fontFamily: 'Nunito',
+                            fontSize: 18,
+                            height: 1.2,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF00796B),
+                          ),
+                        ),
+                        const SizedBox(height: 7),
+                        Text(
+                          _descriptions[index],
+                          style: const TextStyle(
+                            fontFamily: 'Nunito',
+                            fontSize: 14,
+                            height: 1.3,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF00796B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -2954,120 +3237,22 @@ class _ArtworkBotTestSelection extends StatelessWidget {
 class _ArtworkTrainingSelection extends StatelessWidget {
   const _ArtworkTrainingSelection({required this.selectedIndex});
 
-  final int selectedIndex;
+  final int? selectedIndex;
 
   static const _cardBounds = [
-    (20.0, 675.0, 348.0, 220.0),
-    (20.0, 912.0, 348.0, 221.0),
-    (16.0, 1148.0, 354.0, 292.0),
-    (20.0, 1457.0, 348.0, 258.0),
+    (20.0, 674.0, 350.0, 218.0),
+    (20.0, 912.0, 350.0, 218.0),
+    (16.0, 1147.0, 358.0, 259.0),
+    (20.0, 1456.0, 350.0, 218.0),
   ];
 
   @override
   Widget build(BuildContext context) {
-    final selectedBounds = _cardBounds[selectedIndex];
+    if (selectedIndex == null) return const SizedBox.shrink();
+
+    final selectedBounds = _cardBounds[selectedIndex!];
     return Stack(
       children: [
-        const Positioned(
-          left: 340,
-          top: 1131,
-          width: 50,
-          height: 20,
-          child: ColoredBox(color: Color(0xFFFFF8EF)),
-        ),
-        Positioned(
-          left: 16,
-          top: 1148,
-          width: 354,
-          height: 292,
-          child: IgnorePointer(
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(24, 24, 22, 18),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFCFAF3),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFF4B3333), width: 2),
-                boxShadow: const [
-                  BoxShadow(color: Color(0xFF4B3333), offset: Offset(0, 6)),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Study Coach\nExamples',
-                    style: TextStyle(
-                      fontFamily: 'Nunito',
-                      fontSize: 21,
-                      height: 1.25,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF4B3333),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  const Text(
-                    'Helpful study advice, reminders, and\nlearning support.',
-                    style: TextStyle(
-                      fontFamily: 'Nunito',
-                      fontSize: 16,
-                      height: 1.45,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF6B5652),
-                    ),
-                  ),
-                  const Spacer(),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const SizedBox(
-                        width: 75,
-                        height: 52,
-                        child: Stack(
-                          children: [
-                            _ArtworkTrainingIcon(
-                              left: 0,
-                              icon: Icons.menu_book_rounded,
-                              color: Color(0xFF7650B6),
-                            ),
-                            _ArtworkTrainingIcon(
-                              left: 31,
-                              icon: Icons.emoji_events_rounded,
-                              color: Color(0xFF9B5700),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: Container(
-                          height: 98,
-                          padding: const EdgeInsets.all(13),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF8F6F1),
-                            border: Border.all(
-                              color: const Color(0xFFD0CAC5),
-                              width: 2,
-                            ),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text(
-                            'User: I have a test\ntomorrow\nBot: Let’s make a review\nplan...',
-                            style: TextStyle(
-                              fontFamily: 'monospace',
-                              fontSize: 11,
-                              height: 1.35,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF574A43),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
         Positioned(
           left: selectedBounds.$1,
           top: selectedBounds.$2,
@@ -3076,7 +3261,7 @@ class _ArtworkTrainingSelection extends StatelessWidget {
           child: IgnorePointer(
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: const Color(0xFFFF9F43), width: 3),
               ),
             ),
@@ -3107,207 +3292,30 @@ class _ArtworkTrainingSelection extends StatelessWidget {
   }
 }
 
-class _ArtworkTrainingIcon extends StatelessWidget {
-  const _ArtworkTrainingIcon({
-    required this.left,
-    required this.icon,
-    required this.color,
-  });
-
-  final double left;
-  final IconData icon;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Positioned(
-    left: left,
-    bottom: 0,
-    width: 45,
-    height: 45,
-    child: Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        border: Border.all(color: const Color(0xFF4B3333), width: 2),
-      ),
-      child: Icon(icon, color: color, size: 23),
-    ),
-  );
-}
-
 class _ArtworkChatbotTypeCards extends StatelessWidget {
   const _ArtworkChatbotTypeCards({required this.selectedIndex});
 
-  final int selectedIndex;
+  final int? selectedIndex;
 
   @override
   Widget build(BuildContext context) {
-    const cards = [
-      (
-        top: 514.0,
-        height: 136.0,
-        title: 'Math Bot',
-        tag: 'Learn & Solve',
-        description:
-            'Helps solve simple math\nquestions and explain steps\nclearly.',
-        icon: Icons.calculate_outlined,
-        color: Color(0xFF9BD2EC),
-        iconColor: Color(0xFF007568),
-      ),
-      (
-        top: 665.0,
-        height: 112.0,
-        title: 'Fun Bot',
-        tag: 'Play & Explore',
-        description: 'Shares jokes, fun facts, and\nplayful answers.',
-        icon: Icons.star_rounded,
-        color: Color(0xFFFFCBB4),
-        iconColor: Color(0xFF9B5700),
-      ),
-      (
-        top: 792.0,
-        height: 135.0,
-        title: 'Study Coach',
-        tag: 'Guide & Grow',
-        description:
-            'Guides you with study\ntips, reminders, and\nencouragement.',
-        icon: Icons.emoji_events_rounded,
-        color: Color(0xFFA8EDBD),
-        iconColor: Color(0xFF9B5700),
-      ),
-      (
-        top: 942.0,
-        height: 111.0,
-        title: 'Helper Bot',
-        tag: 'Help & Support',
-        description: 'Answers general questions\nand gives useful support.',
-        icon: Icons.support_agent_rounded,
-        color: Color(0xFFFCFAF3),
-        iconColor: Color(0xFF7650B6),
-      ),
-    ];
-
-    return Stack(
-      children: [
-        const Positioned(
-          right: 12,
-          top: 779,
-          width: 43,
-          height: 18,
-          child: ColoredBox(color: Color(0xFFFFF8EF)),
-        ),
-        for (var index = 0; index < cards.length; index++)
-          Positioned(
-            left: 20,
-            top: cards[index].top,
-            width: 338,
-            height: cards[index].height,
-            child: IgnorePointer(
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(16, 16, 14, 12),
-                decoration: BoxDecoration(
-                  color: index == selectedIndex
-                      ? cards[index].color
-                      : const Color(0xFFFCFAF3),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Icon(
-                        cards[index].icon,
-                        size: 31,
-                        color: cards[index].iconColor,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  cards[index].title,
-                                  maxLines: 1,
-                                  style: const TextStyle(
-                                    fontFamily: 'Nunito',
-                                    fontSize: 21,
-                                    height: 1.05,
-                                    fontWeight: FontWeight.w900,
-                                    color: Color(0xFF171914),
-                                  ),
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 9,
-                                  vertical: 5,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Text(
-                                  cards[index].tag,
-                                  style: const TextStyle(
-                                    fontFamily: 'Nunito',
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF5A4B42),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 7),
-                          Text(
-                            cards[index].description,
-                            style: const TextStyle(
-                              fontFamily: 'Nunito',
-                              fontSize: 16,
-                              height: 1.45,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF5A4438),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+    const cardTops = [514.0, 665.0, 792.0, 942.0];
+    if (selectedIndex == null) return const SizedBox.shrink();
+    return Positioned(
+      right: 14,
+      top: cardTops[selectedIndex!] - 9,
+      width: 35,
+      height: 35,
+      child: IgnorePointer(
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFA247),
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xFF4B3333), width: 2),
           ),
-        Positioned(
-          right: 14,
-          top: cards[selectedIndex].top - 5,
-          width: 35,
-          height: 35,
-          child: IgnorePointer(
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFFA8EDBD),
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF4B3333), width: 2),
-              ),
-              child: const Icon(
-                Icons.check_rounded,
-                size: 24,
-                color: Color(0xFF164E35),
-              ),
-            ),
-          ),
+          child: const Icon(Icons.check_rounded, size: 24, color: Colors.white),
         ),
-      ],
+      ),
     );
   }
 }
@@ -3315,7 +3323,7 @@ class _ArtworkChatbotTypeCards extends StatelessWidget {
 class _ArtworkYesNoSelection extends StatelessWidget {
   const _ArtworkYesNoSelection({required this.selectYes});
 
-  final bool selectYes;
+  final bool? selectYes;
 
   @override
   Widget build(BuildContext context) {
@@ -3394,21 +3402,8 @@ class _ArtworkYesNoSelection extends StatelessWidget {
     return Positioned.fill(
       child: Stack(
         children: [
-          option(left: 20, label: 'Yes', selected: selectYes),
-          option(left: 203, label: 'No', selected: !selectYes),
-          if (!selectYes)
-            const Positioned(
-              left: 159,
-              top: 815,
-              width: 38,
-              height: 38,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Color(0xFFFBF5EB),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
+          option(left: 20, label: 'Yes', selected: selectYes == true),
+          option(left: 203, label: 'No', selected: selectYes == false),
         ],
       ),
     );
@@ -3463,19 +3458,26 @@ class _ArtworkChatFlowPill extends StatelessWidget {
 }
 
 class _ArtworkUiLayoutSelection extends StatelessWidget {
-  const _ArtworkUiLayoutSelection();
+  const _ArtworkUiLayoutSelection({required this.selectedIndex});
+
+  final int? selectedIndex;
 
   @override
-  Widget build(BuildContext context) => Positioned.fill(
-    child: IgnorePointer(
-      child: Stack(
-        children: [
-          Positioned(
-            left: 20,
-            top: 316,
-            width: 349,
-            height: 294,
-            child: IgnorePointer(
+  Widget build(BuildContext context) {
+    if (selectedIndex == null) return const SizedBox.shrink();
+
+    final isStreaming = selectedIndex == 0;
+    final cardTop = isStreaming ? 340.0 : 654.0;
+    final cardHeight = isStreaming ? 298.0 : 299.0;
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Stack(
+          children: [
+            Positioned(
+              left: 20,
+              top: cardTop,
+              width: 349,
+              height: cardHeight,
               child: Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: const Color(0xFFFF9F43), width: 4),
@@ -3483,11 +3485,9 @@ class _ArtworkUiLayoutSelection extends StatelessWidget {
                 ),
               ),
             ),
-          ),
-          Positioned(
-            right: 7,
-            top: 303,
-            child: IgnorePointer(
+            Positioned(
+              right: 7,
+              top: cardTop - 13,
               child: Container(
                 width: 42,
                 height: 42,
@@ -3503,40 +3503,11 @@ class _ArtworkUiLayoutSelection extends StatelessWidget {
                 ),
               ),
             ),
-          ),
-          Positioned(
-            left: 20,
-            top: 630,
-            width: 349,
-            height: 299,
-            child: IgnorePointer(
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFF4B3333), width: 4),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            right: 7,
-            top: 617,
-            child: IgnorePointer(
-              child: Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFBF9F1),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF4B3333), width: 3),
-                ),
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _ArtworkSystemSlot extends StatelessWidget {
@@ -3738,18 +3709,22 @@ class _ArtworkRoleOption extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 16),
-              Text(
-                labels[roleIndex],
-                style: TextStyle(
-                  fontFamily: 'Nunito',
-                  fontSize: 21,
-                  fontWeight: FontWeight.w900,
-                  color: selected
-                      ? const Color(0xFF9B5700)
-                      : const Color(0xFF171815),
+              Expanded(
+                child: Text(
+                  labels[roleIndex],
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Nunito',
+                    fontSize: 21,
+                    fontWeight: FontWeight.w900,
+                    color: selected
+                        ? const Color(0xFF9B5700)
+                        : const Color(0xFF171815),
+                  ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 12),
               Container(
                 width: 25,
                 height: 25,
@@ -3831,18 +3806,20 @@ class _ArtworkStyleAnswer extends StatelessWidget {
                       size: 24,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'AI ANSWER',
-                    style: TextStyle(
-                      fontFamily: 'Nunito',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF293033),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'AI ANSWER',
+                      style: TextStyle(
+                        fontFamily: 'Nunito',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF293033),
+                      ),
                     ),
                   ),
-                  const Spacer(),
                   Container(
+                    constraints: const BoxConstraints(maxWidth: 92),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 9,
                       vertical: 4,
@@ -3855,25 +3832,28 @@ class _ArtworkStyleAnswer extends StatelessWidget {
                       ),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Text(
-                      styleName,
-                      style: const TextStyle(
-                        fontFamily: 'Nunito',
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF754000),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        styleName,
+                        style: const TextStyle(
+                          fontFamily: 'Nunito',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF754000),
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 12),
               Text(
                 answer,
                 style: const TextStyle(
                   fontFamily: 'Nunito',
-                  fontSize: 18,
-                  height: 1.52,
+                  fontSize: 16,
+                  height: 1.35,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF293033),
                 ),

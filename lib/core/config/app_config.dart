@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 enum AppEnvironment { development, production }
 
 /// Compile-time configuration injected with `--dart-define`.
@@ -13,6 +15,18 @@ abstract final class AppConfig {
   static const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
   static const sentryDsn = String.fromEnvironment('SENTRY_DSN');
   static const sentryEnvironment = String.fromEnvironment('SENTRY_ENVIRONMENT');
+  static const revenueCatAndroidPublicSdkKey = String.fromEnvironment(
+    'REVENUECAT_ANDROID_PUBLIC_SDK_KEY',
+  );
+  static const revenueCatIosPublicSdkKey = String.fromEnvironment(
+    'REVENUECAT_IOS_PUBLIC_SDK_KEY',
+  );
+
+  /// Development-only RevenueCat Test Store key. Never pass this to a
+  /// production build or commit a real key into source control.
+  static const revenueCatTestStoreApiKey = String.fromEnvironment(
+    'REVENUECAT_TEST_STORE_API_KEY',
+  );
 
   static AppEnvironment get environment => switch (environmentName) {
     'development' => AppEnvironment.development,
@@ -22,6 +36,21 @@ abstract final class AppConfig {
 
   static bool get hasSupabaseConfiguration =>
       supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
+
+  static String get revenueCatPublicSdkKey {
+    if (environment == AppEnvironment.development &&
+        revenueCatTestStoreApiKey.isNotEmpty) {
+      return revenueCatTestStoreApiKey;
+    }
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.android => revenueCatAndroidPublicSdkKey,
+      TargetPlatform.iOS => revenueCatIosPublicSdkKey,
+      _ => '',
+    };
+  }
+
+  static bool get hasRevenueCatConfiguration =>
+      revenueCatPublicSdkKey.isNotEmpty;
 
   static void validate() => validateValues(
     environmentName: environmentName,

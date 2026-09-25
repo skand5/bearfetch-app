@@ -19,6 +19,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
   static const _assetHeight = 1402.0;
 
   String category = 'Hats';
+  String? selectedAccessory;
 
   void _share() {
     ScaffoldMessenger.of(context)
@@ -30,13 +31,24 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
       );
   }
 
-  Future<void> _buyOrEquipStarCap(AppViewState state) async {
+  Future<void> _buyOrEquipAccessory(
+    AppViewState state, {
+    required String accessoryId,
+    required int price,
+  }) async {
     final controller = ref.read(appStateControllerProvider.notifier);
-    if (state.ownedAccessories.contains('Star Cap')) {
-      await controller.equip('Star Cap');
+    if (state.ownedAccessories.contains(accessoryId)) {
+      final slot = _slotFor(accessoryId);
+      if (_BearAppearance.equippedIds(
+        state.equippedAccessories,
+      ).contains(accessoryId)) {
+        await controller.unequip(slot: slot);
+      } else {
+        await controller.equip(accessoryId, slot: slot);
+      }
       return;
     }
-    final result = await controller.buy('Star Cap', 25);
+    final result = await controller.buy(accessoryId, price);
     if (result == PurchaseResult.insufficientHoney && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You need more honey jars.')),
@@ -47,7 +59,9 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(appViewStateProvider);
-    final controller = ref.read(appStateControllerProvider.notifier);
+    final equippedBearAsset = _BearAppearance.assetFor(
+      state.equippedAccessories,
+    );
     return ColoredBox(
       color: const Color(0xFFFBF9F1),
       child: LayoutBuilder(
@@ -78,6 +92,10 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                           filterQuality: FilterQuality.high,
                         ),
                       ),
+                      if (equippedBearAsset != null) ...[
+                        const _ShopSpaceBackground(),
+                        _EquippedBear(assetPath: equippedBearAsset),
+                      ],
                       Positioned(
                         left: 8,
                         top: 6,
@@ -106,25 +124,136 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                               setState(() => category = value),
                         ),
                       ),
-                      if (state.ownedAccessories.contains('Star Cap'))
-                        Positioned.fill(
-                          child: _StarCapState(
-                            equipped: state.equippedAccessory == 'Star Cap',
+                      // The source image contains static selected and disabled
+                      // card states. Replace the complete grid so its state is
+                      // driven only by the learner's owned accessories.
+                      const _ShopCardGridMask(),
+                      _ShopAccessoryCard(
+                        left: 15,
+                        top: 683,
+                        width: 178,
+                        height: 260,
+                        title: 'Star Cap',
+                        price: 25,
+                        owned: state.ownedAccessories.contains('Star Cap'),
+                        equipped: _BearAppearance.equippedIds(
+                          state.equippedAccessories,
+                        ).contains('Star Cap'),
+                        sourceLeft: 32,
+                        sourceTop: 700,
+                      ),
+                      _ShopAccessoryCard(
+                        left: 204,
+                        top: 683,
+                        width: 166,
+                        height: 260,
+                        title: 'Moon Glasses',
+                        price: 60,
+                        owned: state.ownedAccessories.contains('Moon Glasses'),
+                        equipped: _BearAppearance.equippedIds(
+                          state.equippedAccessories,
+                        ).contains('Moon Glasses'),
+                        sourceLeft: 216,
+                        sourceTop: 700,
+                      ),
+                      _ShopAccessoryCard(
+                        left: 15,
+                        top: 949,
+                        width: 178,
+                        height: 250,
+                        title: 'Rocket Pack',
+                        price: 90,
+                        owned: state.ownedAccessories.contains('Rocket Pack'),
+                        equipped: _BearAppearance.equippedIds(
+                          state.equippedAccessories,
+                        ).contains('Rocket Pack'),
+                        sourceLeft: 32,
+                        sourceTop: 965,
+                      ),
+                      _ShopAccessoryCard(
+                        left: 204,
+                        top: 949,
+                        width: 166,
+                        height: 250,
+                        title: 'Galaxy Helm',
+                        price: 180,
+                        owned: state.ownedAccessories.contains('Galaxy Helm'),
+                        equipped: _BearAppearance.equippedIds(
+                          state.equippedAccessories,
+                        ).contains('Galaxy Helm'),
+                        sourceLeft: 216,
+                        sourceTop: 965,
+                      ),
+                      const _SelectedAccessoryBarMask(),
+                      if (selectedAccessory == 'Moon Glasses')
+                        const _AccessorySelectionOutline(
+                          left: 204,
+                          top: 684,
+                          width: 166,
+                          height: 258,
+                        ),
+                      if (selectedAccessory == 'Rocket Pack')
+                        const _AccessorySelectionOutline(
+                          left: 20,
+                          top: 949,
+                          width: 166,
+                          height: 250,
+                        ),
+                      if (selectedAccessory == 'Galaxy Helm')
+                        const _AccessorySelectionOutline(
+                          left: 204,
+                          top: 949,
+                          width: 166,
+                          height: 250,
+                        ),
+                      if (selectedAccessory != null)
+                        _SelectedAccessoryBar(
+                          accessoryId: selectedAccessory!,
+                          owned: state.ownedAccessories.contains(
+                            selectedAccessory,
+                          ),
+                          equipped: _BearAppearance.equippedIds(
+                            state.equippedAccessories,
+                          ).contains(selectedAccessory),
+                          onTap: () => _buyOrEquipAccessory(
+                            state,
+                            accessoryId: selectedAccessory!,
+                            price: _priceFor(selectedAccessory!),
                           ),
                         ),
-                      _AccessoryCardStatus(
-                        left: 205,
-                        top: 850,
-                        owned: state.ownedAccessories.contains('Moon Glasses'),
-                        equipped: state.equippedAccessory == 'Moon Glasses',
-                        price: 60,
+                      Positioned(
+                        left: 15,
+                        top: 684,
+                        width: 178,
+                        height: 258,
+                        child: _ShopHitTarget(
+                          label: 'Select Star Cap',
+                          onTap: () =>
+                              setState(() => selectedAccessory = 'Star Cap'),
+                        ),
                       ),
-                      _AccessoryCardStatus(
+                      Positioned(
+                        left: 204,
+                        top: 684,
+                        width: 166,
+                        height: 258,
+                        child: _ShopHitTarget(
+                          label: 'Select Moon Glasses',
+                          onTap: () => setState(
+                            () => selectedAccessory = 'Moon Glasses',
+                          ),
+                        ),
+                      ),
+                      Positioned(
                         left: 20,
-                        top: 1111,
-                        owned: state.ownedAccessories.contains('Rocket Pack'),
-                        equipped: state.equippedAccessory == 'Rocket Pack',
-                        price: 90,
+                        top: 949,
+                        width: 166,
+                        height: 250,
+                        child: _ShopHitTarget(
+                          label: 'Select Rocket Pack',
+                          onTap: () =>
+                              setState(() => selectedAccessory = 'Rocket Pack'),
+                        ),
                       ),
                       Positioned(
                         left: 24,
@@ -133,12 +262,28 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                         height: 64,
                         child: _ShopHitTarget(
                           label: state.ownedAccessories.contains('Star Cap')
-                              ? state.equippedAccessory == 'Star Cap'
-                                    ? 'Star Cap equipped'
+                              ? _BearAppearance.equippedIds(
+                                      state.equippedAccessories,
+                                    ).contains('Star Cap')
+                                    ? 'Remove Star Cap'
                                     : 'Equip Star Cap'
                               : 'Buy Star Cap',
-                          enabled: state.equippedAccessory != 'Star Cap',
-                          onTap: () => _buyOrEquipStarCap(state),
+                          onTap: () => _buyOrEquipAccessory(
+                            state,
+                            accessoryId: 'Star Cap',
+                            price: 25,
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: 204,
+                        top: 949,
+                        width: 166,
+                        height: 250,
+                        child: _ShopHitTarget(
+                          label: 'Select Galaxy Helm',
+                          onTap: () =>
+                              setState(() => selectedAccessory = 'Galaxy Helm'),
                         ),
                       ),
                       Positioned(
@@ -147,11 +292,18 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                         width: 165,
                         height: 64,
                         child: _ShopHitTarget(
-                          label: state.equippedAccessory == 'Moon Glasses'
-                              ? 'Moon Glasses equipped'
-                              : 'Equip Moon Glasses',
-                          enabled: state.equippedAccessory != 'Moon Glasses',
-                          onTap: () => controller.equip('Moon Glasses'),
+                          label: state.ownedAccessories.contains('Moon Glasses')
+                              ? _BearAppearance.equippedIds(
+                                      state.equippedAccessories,
+                                    ).contains('Moon Glasses')
+                                    ? 'Remove Moon Glasses'
+                                    : 'Equip Moon Glasses'
+                              : 'Buy Moon Glasses',
+                          onTap: () => _buyOrEquipAccessory(
+                            state,
+                            accessoryId: 'Moon Glasses',
+                            price: 60,
+                          ),
                         ),
                       ),
                       Positioned(
@@ -160,24 +312,38 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                         width: 165,
                         height: 64,
                         child: _ShopHitTarget(
-                          label: state.equippedAccessory == 'Rocket Pack'
-                              ? 'Rocket Pack equipped'
-                              : 'Equip Rocket Pack',
-                          enabled: state.equippedAccessory != 'Rocket Pack',
-                          onTap: () => controller.equip('Rocket Pack'),
+                          label: state.ownedAccessories.contains('Rocket Pack')
+                              ? _BearAppearance.equippedIds(
+                                      state.equippedAccessories,
+                                    ).contains('Rocket Pack')
+                                    ? 'Remove Rocket Pack'
+                                    : 'Equip Rocket Pack'
+                              : 'Buy Rocket Pack',
+                          onTap: () => _buyOrEquipAccessory(
+                            state,
+                            accessoryId: 'Rocket Pack',
+                            price: 90,
+                          ),
                         ),
                       ),
                       Positioned(
-                        left: 188,
-                        top: 1212,
-                        width: 178,
-                        height: 78,
+                        left: 205,
+                        top: 1134,
+                        width: 165,
+                        height: 64,
                         child: _ShopHitTarget(
-                          label: state.ownedAccessories.contains('Star Cap')
-                              ? 'Equip selected accessory'
-                              : 'Buy selected accessory',
-                          enabled: state.equippedAccessory != 'Star Cap',
-                          onTap: () => _buyOrEquipStarCap(state),
+                          label: state.ownedAccessories.contains('Galaxy Helm')
+                              ? _BearAppearance.equippedIds(
+                                      state.equippedAccessories,
+                                    ).contains('Galaxy Helm')
+                                    ? 'Remove Galaxy Helm'
+                                    : 'Equip Galaxy Helm'
+                              : 'Buy Galaxy Helm',
+                          onTap: () => _buyOrEquipAccessory(
+                            state,
+                            accessoryId: 'Galaxy Helm',
+                            price: 180,
+                          ),
                         ),
                       ),
                     ],
@@ -190,6 +356,119 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
       ),
     );
   }
+
+  static int _priceFor(String accessoryId) => switch (accessoryId) {
+    'Star Cap' => 25,
+    'Moon Glasses' => 60,
+    'Rocket Pack' => 90,
+    'Galaxy Helm' => 180,
+    _ => 0,
+  };
+
+  static String _slotFor(String accessoryId) => switch (accessoryId) {
+    'Star Cap' || 'Galaxy Helm' => 'head',
+    'Moon Glasses' => 'face',
+    'Rocket Pack' => 'back',
+    _ => 'featured',
+  };
+}
+
+class _EquippedBear extends StatelessWidget {
+  const _EquippedBear({required this.assetPath});
+
+  final String assetPath;
+
+  @override
+  Widget build(BuildContext context) => Positioned(
+    left: -48,
+    top: 40,
+    width: 483,
+    height: 483,
+    child: IgnorePointer(child: Image.asset(assetPath, fit: BoxFit.contain)),
+  );
+}
+
+class _ShopSpaceBackground extends StatelessWidget {
+  const _ShopSpaceBackground();
+
+  @override
+  Widget build(BuildContext context) => const Positioned.fill(
+    child: Stack(
+      children: [
+        Positioned(
+          left: 0,
+          top: 63,
+          width: 390,
+          height: 420,
+          child: IgnorePointer(child: ColoredBox(color: Color(0xFFFBF9F1))),
+        ),
+        Positioned(
+          left: 0,
+          top: 63,
+          width: 390,
+          height: 220,
+          child: IgnorePointer(
+            child: Image(
+              image: AssetImage(
+                'assets/illustrations/shop_space_background.png',
+              ),
+              fit: BoxFit.fill,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _BearAppearance {
+  static Set<String> equippedIds(Map<String, String> equippedAccessories) {
+    final bySlot = <String, String>{};
+    for (final accessory in equippedAccessories.values) {
+      final slot = _slotFor(accessory);
+      if (slot != null) bySlot[slot] = accessory;
+    }
+    return Set.unmodifiable(bySlot.values);
+  }
+
+  static String? assetFor(Map<String, String> equippedAccessories) {
+    final items = equippedIds(equippedAccessories);
+    final cap = items.contains('Star Cap');
+    final glasses = items.contains('Moon Glasses');
+    final rocket = items.contains('Rocket Pack');
+    final helm = items.contains('Galaxy Helm');
+
+    if (cap && glasses && rocket) {
+      return 'assets/illustrations/bear_equipped_cap_moon_glasses_rocket_pack.png';
+    }
+    if (helm && glasses && rocket) {
+      return 'assets/illustrations/bear_equipped_galaxy_helm_moon_glasses_rocket_pack.png';
+    }
+    if (cap && glasses) {
+      return 'assets/illustrations/bear_equipped_cap_moon_glasses.png';
+    }
+    if (cap && rocket) {
+      return 'assets/illustrations/bear_equipped_cap_rocket_pack.png';
+    }
+    if (glasses && rocket) {
+      return 'assets/illustrations/bear_equipped_moon_glasses_rocket_pack.png';
+    }
+    if (helm && rocket) {
+      return 'assets/illustrations/bear_equipped_galaxy_helm_rocket_pack.png';
+    }
+    if (cap) return 'assets/illustrations/bear_equipped_cap.png';
+    if (glasses) return 'assets/illustrations/bear_equipped_moon_glasses.png';
+    if (rocket) return 'assets/illustrations/bear_equipped_rocket_pack.png';
+    if (helm) return 'assets/illustrations/bear_equipped_galaxy_helm.png';
+    return null;
+  }
+
+  static String? _slotFor(String accessoryId) => switch (accessoryId) {
+    'Star Cap' || 'Galaxy Helm' => 'head',
+    'Moon Glasses' => 'face',
+    'Rocket Pack' => 'back',
+    _ => null,
+  };
 }
 
 class _HoneyBalance extends StatelessWidget {
@@ -296,148 +575,364 @@ class _CategoryPill extends StatelessWidget {
   );
 }
 
-class _StarCapState extends StatelessWidget {
-  const _StarCapState({required this.equipped});
-
-  final bool equipped;
+class _ShopCardGridMask extends StatelessWidget {
+  const _ShopCardGridMask();
 
   @override
-  Widget build(BuildContext context) => Stack(
-    children: [
-      _AccessoryCardStatus(
-        left: 20,
-        top: 850,
-        owned: true,
-        equipped: equipped,
-        price: 25,
-      ),
-      Positioned(
-        left: 20,
-        top: 1247,
-        width: 350,
-        height: 58,
-        child: ColoredBox(
-          color: Colors.white,
-          child: Row(
-            children: [
-              const SizedBox(width: 18),
-              Text(
-                equipped ? 'EQUIPPED' : 'OWNED',
-                style: const TextStyle(
-                  fontFamily: 'Fredoka',
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF6CE3C8),
-                ),
-              ),
-              const Spacer(),
-              Text(
-                equipped ? 'Equipped' : 'Equip',
-                style: TextStyle(
-                  fontFamily: 'Fredoka',
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: equipped
-                      ? const Color(0xFFB0A7A7)
-                      : BearfetchColors.cocoa,
-                ),
-              ),
-              const SizedBox(width: 34),
-            ],
-          ),
-        ),
-      ),
-    ],
+  Widget build(BuildContext context) => const Positioned(
+    left: 0,
+    top: 675,
+    width: 390,
+    height: 530,
+    child: ColoredBox(color: Color(0xFFFBF9F1)),
   );
 }
 
-class _AccessoryCardStatus extends StatelessWidget {
-  const _AccessoryCardStatus({
+class _ShopAccessoryCard extends StatelessWidget {
+  const _ShopAccessoryCard({
     required this.left,
     required this.top,
+    required this.width,
+    required this.height,
+    required this.title,
+    required this.price,
     required this.owned,
     required this.equipped,
-    required this.price,
+    required this.sourceLeft,
+    required this.sourceTop,
   });
 
   final double left;
   final double top;
+  final double width;
+  final double height;
+  final String title;
+  final int price;
   final bool owned;
   final bool equipped;
-  final int price;
+  final double sourceLeft;
+  final double sourceTop;
 
   @override
   Widget build(BuildContext context) => Positioned(
     left: left,
     top: top,
-    width: 165,
-    height: 82,
-    child: ColoredBox(
-      color: Colors.white,
+    width: width,
+    height: height,
+    child: Container(
+      padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            equipped
-                ? 'EQUIPPED'
-                : owned
-                ? 'OWNED'
-                : 'NOT OWNED',
-            style: TextStyle(
-              fontFamily: 'Fredoka',
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: owned ? const Color(0xFF6CE3C8) : const Color(0xFF877365),
-            ),
-          ),
-          const Spacer(),
           Center(
-            child: Text(
-              equipped
-                  ? 'Equipped'
-                  : owned
-                  ? 'Equip'
-                  : 'Earn $price honey',
-              style: TextStyle(
-                fontFamily: 'Fredoka',
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: equipped
-                    ? const Color(0xFFB0A7A7)
-                    : BearfetchColors.cocoa,
+            child: SizedBox(
+              width: 143,
+              height: 113,
+              child: _CustomizationCrop(
+                sourceLeft: sourceLeft,
+                sourceTop: sourceTop,
+                width: 143,
+                height: 113,
               ),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 11),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontFamily: 'Fredoka',
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF171B1A),
+            ),
+          ),
+          const SizedBox(height: 4),
+          if (owned)
+            const Center(
+              child: Text(
+                'OWNED',
+                style: TextStyle(
+                  fontFamily: 'Fredoka',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF6CE3C8),
+                ),
+              ),
+            )
+          else
+            Center(
+              child: Text(
+                '✿ $price',
+                style: const TextStyle(
+                  fontFamily: 'Fredoka',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF9A5300),
+                ),
+              ),
+            ),
+          const Spacer(),
+          SizedBox(
+            width: double.infinity,
+            height: 38,
+            child: Center(
+              child: owned
+                  ? Text(
+                      equipped ? 'Remove' : 'Equip',
+                      style: const TextStyle(
+                        fontFamily: 'Fredoka',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: BearfetchColors.cocoa,
+                      ),
+                    )
+                  : Container(
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: BearfetchColors.honey,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'Buy',
+                        style: TextStyle(
+                          fontFamily: 'Fredoka',
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF6D3A00),
+                        ),
+                      ),
+                    ),
+            ),
+          ),
         ],
       ),
     ),
   );
 }
 
+class _CustomizationCrop extends StatelessWidget {
+  const _CustomizationCrop({
+    required this.sourceLeft,
+    required this.sourceTop,
+    required this.width,
+    required this.height,
+  });
+
+  final double sourceLeft;
+  final double sourceTop;
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+    borderRadius: BorderRadius.circular(13),
+    child: OverflowBox(
+      alignment: Alignment.topLeft,
+      minWidth: 390,
+      maxWidth: 390,
+      minHeight: 1402,
+      maxHeight: 1402,
+      child: Transform.translate(
+        offset: Offset(-sourceLeft, -sourceTop),
+        child: const Image(
+          image: AssetImage('assets/illustrations/customization.png'),
+          width: 390,
+          height: 1402,
+          fit: BoxFit.fill,
+          filterQuality: FilterQuality.high,
+        ),
+      ),
+    ),
+  );
+}
+
+class _SelectedAccessoryBarMask extends StatelessWidget {
+  const _SelectedAccessoryBarMask();
+
+  @override
+  Widget build(BuildContext context) => const Positioned(
+    left: 0,
+    top: 1202,
+    width: 390,
+    height: 120,
+    child: ColoredBox(color: Color(0xFFFBF9F1)),
+  );
+}
+
+class _AccessorySelectionOutline extends StatelessWidget {
+  const _AccessorySelectionOutline({
+    required this.left,
+    required this.top,
+    required this.width,
+    required this.height,
+  });
+
+  final double left;
+  final double top;
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) => Positioned(
+    left: left,
+    top: top,
+    width: width,
+    height: height,
+    child: IgnorePointer(
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: BearfetchColors.honey, width: 3),
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+    ),
+  );
+}
+
+class _SelectedAccessoryBar extends StatelessWidget {
+  const _SelectedAccessoryBar({
+    required this.accessoryId,
+    required this.owned,
+    required this.equipped,
+    required this.onTap,
+  });
+
+  final String accessoryId;
+  final bool owned;
+  final bool equipped;
+  final VoidCallback onTap;
+
+  static const _descriptions = {
+    'Star Cap': 'A bright cap for...',
+    'Moon Glasses': 'A moonlit look for...',
+    'Rocket Pack': 'A rocket pack for...',
+    'Galaxy Helm': 'A cosmic helmet for...',
+  };
+
+  static const _prices = {
+    'Star Cap': 25,
+    'Moon Glasses': 60,
+    'Rocket Pack': 90,
+    'Galaxy Helm': 180,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final price = _prices[accessoryId]!;
+    final action = owned ? (equipped ? 'Remove' : 'Equip') : 'Buy Accessory';
+    return Positioned(
+      left: 20,
+      top: 1208,
+      width: 350,
+      height: 98,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    accessoryId,
+                    style: const TextStyle(
+                      fontFamily: 'Fredoka',
+                      fontSize: 19,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF171B1A),
+                    ),
+                  ),
+                  Text(
+                    _descriptions[accessoryId]!,
+                    style: const TextStyle(
+                      fontFamily: 'Fredoka',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF5C4B3D),
+                    ),
+                  ),
+                  if (!owned)
+                    Text(
+                      '✿ $price',
+                      style: const TextStyle(
+                        fontFamily: 'Fredoka',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF9A5300),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Semantics(
+              button: true,
+              label: '$action $accessoryId',
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onTap,
+                  borderRadius: BorderRadius.circular(28),
+                  child: Container(
+                    width: 154,
+                    height: 56,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: BearfetchColors.honey,
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                    child: Text(
+                      action,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontFamily: 'Fredoka',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF6D3A00),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ShopHitTarget extends StatelessWidget {
   const _ShopHitTarget({
     required this.label,
     required this.onTap,
-    this.enabled = true,
     this.selected,
   });
 
   final String label;
   final VoidCallback onTap;
-  final bool enabled;
   final bool? selected;
 
   @override
   Widget build(BuildContext context) => Semantics(
     label: label,
     button: true,
-    enabled: enabled,
+    enabled: true,
     selected: selected,
     child: Material(
       type: MaterialType.transparency,
       child: InkWell(
-        onTap: enabled ? onTap : null,
+        onTap: onTap,
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
       ),

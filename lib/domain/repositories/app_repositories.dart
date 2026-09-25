@@ -4,6 +4,26 @@ import '../../data/local/app_database.dart';
 
 enum PurchaseResult { purchased, alreadyOwned, insufficientHoney }
 
+enum ProgressInsightPurchaseAvailability { available, unavailable }
+
+class ProgressInsightPurchaseState {
+  const ProgressInsightPurchaseState({
+    required this.availability,
+    required this.hasEntitlement,
+    this.localizedPrice,
+    this.message,
+  });
+
+  final ProgressInsightPurchaseAvailability availability;
+  final bool hasEntitlement;
+  final String? localizedPrice;
+  final String? message;
+
+  bool get canPurchase =>
+      availability == ProgressInsightPurchaseAvailability.available &&
+      !hasEntitlement;
+}
+
 enum AuthSessionStatus { signedOut, authenticated, expired }
 
 enum SyncRunStatus { synced, skipped, failed }
@@ -93,6 +113,7 @@ abstract interface class ShopRepository {
     required int price,
   });
   Future<bool> equip({required String accessoryId, required String slot});
+  Future<bool> unequip({required String slot});
 }
 
 abstract interface class SyncRepository {
@@ -107,6 +128,15 @@ abstract interface class PrivacyRepository {
   Future<DeletionRequestState> deletionRequestState();
   Future<DeletionRequestState> scheduleDeletion(DeletionTarget target);
   Future<void> cancelDeletion(String requestId);
+}
+
+/// Parent-only, store-backed lifetime purchase. Implementations must never
+/// grant access from local state alone.
+abstract interface class ProgressInsightPurchaseRepository {
+  Future<ProgressInsightPurchaseState> statusFor(String parentUserId);
+  Future<ProgressInsightPurchaseState> purchase(String parentUserId);
+  Future<ProgressInsightPurchaseState> restore(String parentUserId);
+  Future<void> signOut();
 }
 
 final appDatabaseProvider = Provider<AppDatabase>(
@@ -139,3 +169,8 @@ final syncRepositoryProvider = Provider<SyncRepository>(
 final privacyRepositoryProvider = Provider<PrivacyRepository>(
   (ref) => throw StateError('Privacy repository has not been bootstrapped.'),
 );
+final progressInsightPurchaseRepositoryProvider =
+    Provider<ProgressInsightPurchaseRepository>(
+      (ref) =>
+          throw StateError('Purchase repository has not been bootstrapped.'),
+    );

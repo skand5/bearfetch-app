@@ -6,6 +6,8 @@ import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'fake_progress_insight_purchase_repository.dart';
+
 class TestHarness {
   TestHarness({
     required this.database,
@@ -28,7 +30,11 @@ class TestHarness {
     );
   }
 
-  Widget wrap(Widget child, {AuthRepository? authRepository}) => ProviderScope(
+  Widget wrap(
+    Widget child, {
+    AuthRepository? authRepository,
+    ProgressInsightPurchaseRepository? progressInsightPurchaseRepository,
+  }) => ProviderScope(
     overrides: [
       appDatabaseProvider.overrideWithValue(database),
       courseCatalogProvider.overrideWithValue(catalog),
@@ -41,6 +47,10 @@ class TestHarness {
       shopRepositoryProvider.overrideWithValue(repository),
       syncRepositoryProvider.overrideWithValue(repository),
       privacyRepositoryProvider.overrideWithValue(repository),
+      progressInsightPurchaseRepositoryProvider.overrideWithValue(
+        progressInsightPurchaseRepository ??
+            FakeProgressInsightPurchaseRepository(),
+      ),
     ],
     child: child,
   );

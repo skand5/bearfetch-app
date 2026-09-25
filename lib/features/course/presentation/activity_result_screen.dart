@@ -11,17 +11,19 @@ class ActivityResultScreen extends ConsumerWidget {
     super.key,
     required this.activityId,
     required this.correct,
+    this.chatbotTypeIndex,
   });
 
   final String activityId;
   final bool correct;
+  final int? chatbotTypeIndex;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final activity = ref.watch(courseCatalogProvider).activity(activityId);
     if (!correct) return _RetryResult(activity: activity);
 
-    final copy = _activityResultCopy[activityId]!;
+    final copy = _resultCopyFor(activityId, chatbotTypeIndex);
     return _CorrectResult(
       activity: activity,
       copy: copy,
@@ -32,7 +34,15 @@ class ActivityResultScreen extends ConsumerWidget {
             .completeActivity(activity);
         final next = activity.nextId;
         if (context.mounted) {
-          context.go(next == null ? '/course-completion' : '/activity/$next');
+          final chatbotTypeQuery =
+              activityId == 'unit-04-05' && chatbotTypeIndex != null
+              ? '?chatbotType=$chatbotTypeIndex'
+              : '';
+          context.go(
+            next == null
+                ? '/course-completion'
+                : '/activity/$next$chatbotTypeQuery',
+          );
         }
       },
     );
@@ -609,6 +619,39 @@ class _ResultCopy {
   final String next;
 }
 
+_ResultCopy _resultCopyFor(String activityId, int? chatbotTypeIndex) {
+  const botNames = ['Math Bot', 'Fun Bot', 'Study Coach', 'Helper Bot'];
+  const exampleNames = [
+    'Math Practice Examples',
+    'Fun Facts Examples',
+    'Study Coach Examples',
+    'General Helper Examples',
+  ];
+  final index =
+      chatbotTypeIndex != null &&
+          chatbotTypeIndex >= 0 &&
+          chatbotTypeIndex < botNames.length
+      ? chatbotTypeIndex
+      : 2;
+  if (activityId == 'unit-04-05') {
+    return _ResultCopy(
+      learnt:
+          'The scripted example gave your chatbot concept a clear purpose: ${botNames[index]}.',
+      next:
+          'Next, you’ll review fixed ${exampleNames[index]} that match the ${botNames[index]} concept.',
+    );
+  }
+  if (activityId == 'unit-04-06') {
+    return _ResultCopy(
+      learnt:
+          'The scripted ${exampleNames[index]} showed how relevant examples can match a chatbot’s intended purpose.',
+      next:
+          'Next, you’ll review a scripted ${botNames[index]} prompt and its predefined response.',
+    );
+  }
+  return _activityResultCopy[activityId]!;
+}
+
 const _activityResultCopy = <String, _ResultCopy>{
   'unit-01-01': _ResultCopy(
     learnt:
@@ -692,18 +735,6 @@ const _activityResultCopy = <String, _ResultCopy>{
         'The simulation showed how a chatbot can receive a message and return a clear response that explains what it is and how it can help.',
     next:
         'Next, you’ll simulate choosing a focus area and personality for a chatbot concept.',
-  ),
-  'unit-04-05': _ResultCopy(
-    learnt:
-        'The scripted example showed that a chatbot concept works best with a clear purpose. Study Coach represented learning support.',
-    next:
-        'Next, you’ll review fixed training examples that match the Study Coach concept.',
-  ),
-  'unit-04-06': _ResultCopy(
-    learnt:
-        'The simulation showed how relevant examples can illustrate questions and answers that match a chatbot’s intended purpose.',
-    next:
-        'Next, you’ll review a scripted Study Coach prompt and its predefined response.',
   ),
   'unit-04-07': _ResultCopy(
     learnt:

@@ -1,6 +1,6 @@
 # BearFetch Development Status
 
-Last updated: 2026-08-22
+Last updated: 2026-09-25
 
 This is the canonical completion and pending-work record for the BearFetch app. Update it whenever a section, external prerequisite, release gate, or explicitly deferred item changes.
 
@@ -14,6 +14,49 @@ This is the canonical completion and pending-work record for the BearFetch app. 
 - **Release gate**: must pass before a public production release.
 
 ## Complete
+
+### Current worktree handoff — 2026-09-25
+
+- `docs/HANDOFF.md` is canonical for current checkout continuation: dirty
+  worktree, architecture map, configuration, manual verification, product
+  boundaries, and next work.
+- Current UI/payment/tooling work remains uncommitted. Preserve all existing
+  changes and untracked files until they receive a feature-by-feature review,
+  device verification, and scoped commit.
+- GitHub Actions and self-hosted runner remain intentionally removed. Manual
+  local checks in `docs/SETUP.md` are required before merge/release.
+- RevenueCat Test Store purchase/entitlement flow is now device-verified (see
+  RevenueCat section below). The Profile screen's settings row visibly said
+  "Notifications" while always routing to Parent settings; a cosmetic overlay
+  patch in `profile_screen.dart` corrects the visible label to match.
+
+### RevenueCat parent-only progress insight purchase
+
+- Parent Settings contains a RevenueCat-gated lifetime purchase for a human
+  progress-insight request. Child UI, course access, privacy controls, and
+  honey shop remain free and unchanged.
+- Unlock state comes only from active RevenueCat entitlement
+  `progress_insight_requests`; missing keys, offerings, or product packages
+  leave the buy path disabled.
+- An unlocked parent sees a static confirmation only (no text field, no
+  `mailto:` composer): lifetime access is active and BearFetch will email a
+  progress insight directly. This is intentionally forward-looking copy — no
+  backend email flow exists. `url_launcher` was removed since nothing else in
+  `parent_settings_screen.dart` used it.
+- **Verified 2026-09-25 on the Android emulator against RevenueCat's Test
+  Store**: product `bearfetch_progress_insight_lifetime` (non-consumable,
+  $4.99), entitlement `progress_insight_requests`, and the `$rc_lifetime`
+  package on the current offering are created in the RC dashboard;
+  `REVENUECAT_TEST_STORE_API_KEY` is set in the git-ignored
+  `config/development.json`; purchase completes instantly with no real store
+  account, and the entitlement is tracked by RevenueCat against the parent
+  user id (persists independent of local app reinstall/demo-state reset).
+- Real Android/iOS RevenueCat apps (public SDK keys), Google Play/App Store
+  sandbox purchase+restore tests, and Play Console/App Store Connect product
+  setup remain external prerequisites for a store release. They are **not**
+  required for the RevenueCat Shipaton "Next Gen Award" submission, which
+  explicitly waives the store-release requirement — the Test Store flow
+  already satisfies that award's "working RevenueCat purchase" bar.
 
 ### Approved Flutter UI baseline
 
@@ -52,7 +95,6 @@ Visual acceptance remains the current Flutter UI and approved Figma screenshots.
 - Secret, signing, environment, and generated-output exclusions added to `.gitignore`.
 - Android upload-keystore configuration and validation scaffolding added.
 - iOS scheme/configuration templates added.
-- GitHub Actions CI and release workflow files added locally.
 - Setup and secret-location documentation added in `docs/SETUP.md`.
 - Local analysis, tests, and Android debug build passed at the Section 1 checkpoint.
 - Section commit: `6f5a229 build: add production release foundation`.
@@ -203,9 +245,8 @@ email delivery, and legal approval remain pending below.
   Public remote values being present does **not** mean migrations were applied,
   remote Auth/SMTP was configured, or production was verified.
 - Sentry runtime initialization, consent gating, and PII scrubbing are
-  implemented locally. Sentry project verification and CI symbol upload remain
-  unconfigured until the remote/CI prerequisites are available.
-- GitHub workflow files exist locally, but they do not run until the repository/remote and Actions secrets are configured.
+  implemented locally. Sentry project verification and local symbol upload
+  remain unconfigured until the remote/local release prerequisites are available.
 - iOS scheme scaffolding exists, but signing and archive verification are incomplete.
 
 ## Pending — Section 5: verification and production release
@@ -234,26 +275,16 @@ These items are intentionally postponed, not complete and not removed from scope
 - Keep Resend API/SMTP credentials in Supabase/server secret storage only. Do **not** add a `RESEND_API_KEY` to Flutter JSON files.
 - This must be completed before production OTP and consent emails are release-ready.
 
-### GitHub repository and CI secrets
+### Manual local release
 
-- GitHub repository and remote are configured.
-- GitHub-hosted Actions are blocked by the account billing/spending setting.
-- User decision: use a private, self-hosted macOS ARM64 runner. CI is limited to
-  trusted `main` pushes and manual dispatch; it must never run pull requests
-  from forks.
-- Register and keep the runner online using
-  [SELF_HOSTED_RUNNER.md](SELF_HOSTED_RUNNER.md), then verify quality CI and
-  secret scanning.
-- Verified 2026-08-22: the self-hosted runner service completed both
-  `quality-and-android` and `secret-scan` successfully. The Android job passed
-  formatting, analysis, tests, Drift generation, debug APK build, and artifact
-  upload.
-- User decision: remain on the free private GitHub plan. GitHub rulesets are
-  not enforced for this repository without an organization upgrade, so branch
-  protection is intentionally not configured. The successful self-hosted CI
-  checks remain advisory and must be reviewed before each merge/release.
-- Add CI-only secrets listed in `docs/SETUP.md`.
-- Verify CI, secret scanning, Android release build, and later iOS archive jobs.
+- GitHub Actions and self-hosted runner configuration were removed by user
+  decision. No automated checks, artifact uploads, or GitHub-held signing
+  secrets remain.
+- Before each merge or release, run the manual format, analysis, test, Drift,
+  database, and build commands in `docs/SETUP.md` on the trusted release
+  machine.
+- Keep Android and Apple signing material, Supabase management credentials, and
+  Sentry upload credentials outside Git and outside Flutter client config.
 
 ### iOS signing and App Store setup
 
@@ -261,7 +292,7 @@ These items are intentionally postponed, not complete and not removed from scope
 - Install/select full Xcode; the current machine checkpoint had Command Line Tools only.
 - Confirm Apple Developer membership and Team ID.
 - Create/confirm the App Store Connect app record for `com.bearfetch.app`.
-- Configure distribution certificate, provisioning profile, App Store Connect API key, and CI secrets.
+- Configure distribution certificate, provisioning profile, App Store Connect API key, and local signing files.
 - Verify simulator behavior and produce a signed archive.
 
 ## External prerequisites and open release gates
@@ -293,5 +324,5 @@ These items are intentionally postponed, not complete and not removed from scope
 4. Link and migrate the confirmed remote Supabase project in a controlled
    deployment window, then run hosted security smoke tests.
 5. Section 5 full regression and Android release preparation.
-6. Resume GitHub CI activation and iOS signing when the deferred prerequisites
-   are ready.
+6. Complete local iOS signing and manual IPA verification when the deferred
+   prerequisites are ready.

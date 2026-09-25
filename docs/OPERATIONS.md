@@ -36,15 +36,16 @@ The Flutter runtime contains a consent-gated, crash-only Sentry boundary:
   breadcrumbs are excluded;
 - the runtime never sets a Sentry user identity.
 
-Before production release, configure only CI secrets for source-map/symbol
-uploads: `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT`. The client
-receives only `SENTRY_DSN` and `SENTRY_ENVIRONMENT` as public build values.
+Before production release, configure source-map/symbol upload credentials only
+on the trusted local release machine: `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and
+`SENTRY_PROJECT`. The client receives only `SENTRY_DSN` and
+`SENTRY_ENVIRONMENT` as public build values.
 Run a release-candidate crash test after consent and inspect the received event
 to confirm it contains no parent email, learner nickname, form data, activity
 answer, prompt, or screenshot.
 
 ## Deferred production activation
 
-Resend SMTP/domain setup, the GitHub remote/Actions secrets, iOS signing, and
-remote Supabase linking remain separate prerequisites. See
+Resend SMTP/domain setup, iOS signing, and remote Supabase linking remain
+separate prerequisites. See
 `docs/DEVELOPMENT_STATUS.md` for their authoritative status.

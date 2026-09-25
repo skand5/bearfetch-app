@@ -55,6 +55,40 @@ class ProfileScreen extends ConsumerWidget {
                         ),
                       ),
                       _ProfileProgressOverlay(state: state),
+                      // The baked-in profile.png art still reads
+                      // "Notifications" for this row; this label patch
+                      // overlays the correct "Parent settings" copy so the
+                      // visible text matches where the row actually
+                      // navigates. Purely cosmetic — it sits above the
+                      // Image and below the transparent hit target below.
+                      const Positioned(
+                        left: 34,
+                        top: 1097,
+                        width: 300,
+                        height: 30,
+                        child: ColoredBox(
+                          color: Color(0xFFFBF9F1),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.manage_accounts_rounded,
+                                size: 20,
+                                color: Color(0xFF293033),
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                'Parent settings',
+                                style: TextStyle(
+                                  fontFamily: 'PlusJakartaSans',
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF293033),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                       Positioned(
                         left: 326,
                         top: 8,

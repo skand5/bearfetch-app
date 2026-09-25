@@ -2,6 +2,10 @@
 
 Offline-first Flutter learning app for children. Course content and chatbot-building activities are scripted assets; application contains no AI/chatbot runtime.
 
+Start continuation work with [docs/HANDOFF.md](docs/HANDOFF.md). It records
+current worktree state, product boundaries, verification commands, secrets, and
+next work.
+
 ## Toolchain
 
 - Flutter `3.41.4` / Dart `3.11.1`
@@ -19,4 +23,5 @@ flutter run --flavor development --dart-define-from-file=config/development.json
 
 Development build may run without backend credentials until Supabase integration lands. Production builds fail at startup unless every required public value is supplied.
 
-See [docs/SETUP.md](docs/SETUP.md) for signing, environment, CI, Supabase, Resend, and Sentry setup.
+See [docs/SETUP.md](docs/SETUP.md) for local signing, environment, Supabase,
+Resend, Sentry, validation, and release setup.
