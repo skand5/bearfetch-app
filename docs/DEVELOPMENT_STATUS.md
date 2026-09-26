@@ -1,6 +1,6 @@
 # BearFetch Development Status
 
-Last updated: 2026-09-25
+Last updated: 2026-09-26
 
 This is the canonical completion and pending-work record for the BearFetch app. Update it whenever a section, external prerequisite, release gate, or explicitly deferred item changes.
 
@@ -15,17 +15,19 @@ This is the canonical completion and pending-work record for the BearFetch app. 
 
 ## Complete
 
-### Current worktree handoff — 2026-09-25
+### Current worktree handoff — 2026-09-26
 
-- `docs/HANDOFF.md` is canonical for current checkout continuation: dirty
-  worktree, architecture map, configuration, manual verification, product
-  boundaries, and next work.
-- Current UI/payment/tooling work remains uncommitted. Preserve all existing
-  changes and untracked files until they receive a feature-by-feature review,
-  device verification, and scoped commit.
+- `docs/HANDOFF.md` is canonical for current checkout continuation:
+  architecture map, configuration, manual verification, product boundaries,
+  and next work.
+- The former dirty worktree (UI/payment/tooling work) is committed as a single
+  checkpoint on branch `checkpoint/revenuecat-ui-release-prep`
+  (`75c3792 feat: RevenueCat progress insight, Figma UI fixes, splash/icons,
+  manual release flow`) and pushed to `origin`. Working tree is clean. The
+  branch is **not yet merged into `main`** — open the PR when ready.
 - GitHub Actions and self-hosted runner remain intentionally removed. Manual
   local checks in `docs/SETUP.md` are required before merge/release.
-- RevenueCat Test Store purchase/entitlement flow is now device-verified (see
+- RevenueCat Test Store purchase/entitlement flow is device-verified (see
   RevenueCat section below). The Profile screen's settings row visibly said
   "Notifications" while always routing to Parent settings; a cosmetic overlay
   patch in `profile_screen.dart` corrects the visible label to match.

@@ -1,6 +1,6 @@
 # BearFetch Continuation Handoff
 
-Last reviewed: 2026-09-25
+Last reviewed: 2026-09-26
 
 Read this file first, then `docs/DEVELOPMENT_STATUS.md`, before changing the
 repository.
@@ -20,26 +20,28 @@ repository.
 
 ## Current checkout
 
-- Base commit: `3bbd5e9 fix: clear chatbot question default selection`.
-- Worktree is intentionally dirty. Do not use `git reset --hard`, checkout
-  files, or discard changes. Review existing edits before adding new work.
-- Uncommitted work includes:
+- Working tree is clean (no uncommitted changes) as of 2026-09-26.
+- Current branch: `checkpoint/revenuecat-ui-release-prep`, pushed to
+  `origin`. Not yet merged into `main`. Open the PR from the link GitHub
+  printed on push (`https://github.com/alwayskumar-global/bearfetch-app/pull/new/checkpoint/revenuecat-ui-release-prep`)
+  when ready to merge.
+- Head commit: `75c3792 feat: RevenueCat progress insight, Figma UI fixes,
+  splash/icons, manual release flow` — this is the former dirty worktree,
+  committed as one checkpoint. It bundles:
   - Figma-aligned onboarding and course activity UI corrections;
   - chatbot-choice/training-example/reset behavior and Step 34 bot-test flow;
   - dynamic shop balance, buy/equip/remove state, equipment artwork variants,
     and shop visual fixes;
   - splash screen, Android/iOS app icons, and launch assets;
-  - RevenueCat parent-only progress-insight lifetime purchase, now verified
+  - RevenueCat parent-only progress-insight lifetime purchase, verified
     against RC Test Store on-device (see RevenueCat state below);
   - a cosmetic overlay patch in `profile_screen.dart` so the Profile screen's
     settings row reads "Parent settings" (the baked-in `profile.png` art still
     says "Notifications" at that position; the tap target always routed to
     `/parent-settings` — only the visible label was wrong);
   - manual local release flow; GitHub Actions/self-hosted runner removal.
-- New untracked source files are part of this work, including
-  `lib/core/bootstrap/launch_splash.dart`,
-  `lib/data/repositories/revenuecat_purchase_repository.dart`, and its test
-  fake. Do not omit them from a future commit.
+- `main` still points at `3bbd5e9` until the PR above merges. Do not
+  `git reset --hard`, checkout files from `main`, or discard branch changes.
 
 ## Architecture map
 
@@ -129,11 +131,13 @@ supabase db lint --local --level warning
 
 ## Next work
 
-1. Review current dirty worktree by feature; verify all UI fixes on Android
-   emulator before committing.
+1. Open/merge the PR for `checkpoint/revenuecat-ui-release-prep` into `main`
+   (repo must be public with a LICENSE file for the RevenueCat Shipaton
+   "Next Gen Award" submission — verify both before merging).
 2. Run full manual regression: onboarding/auth, all course steps, Step 34,
    rewards, shop purchase/equip/remove, restart persistence, privacy/deletion.
-3. Configure RevenueCat Test Store and validate entitlement/purchase/restore.
+3. RevenueCat Test Store entitlement/purchase/restore is verified (see
+   RevenueCat state below); Google Play/App Store sandbox tests remain.
 4. Complete deferred Resend/Supabase production email setup.
 5. Complete release gates: signed Android AAB/Play testing, then iOS signing,
    archive, and App Store testing.
@@ -155,11 +159,11 @@ Read docs/HANDOFF.md, docs/DEVELOPMENT_STATUS.md, docs/SETUP.md, and AGENTS.md
 if present before acting. Treat docs/HANDOFF.md as current working handoff;
 DEVELOPMENT_STATUS.md records longer-term completed/deferred boundaries.
 
-Do not discard, reset, checkout, or overwrite current dirty worktree changes.
-First inspect git status and git diff. Existing uncommitted changes include UI,
-splash/icon, shop equipment artwork, RevenueCat, and GitHub Actions removal;
-preserve them unless user explicitly asks otherwise. New untracked source files
-must be retained in future commits.
+Current branch is checkpoint/revenuecat-ui-release-prep, pushed to origin,
+not yet merged to main. First inspect git status, git branch, and git log to
+confirm you are still on it. Do not discard, reset, or check out files from
+main over this branch's work (UI, splash/icon, shop equipment artwork,
+RevenueCat, GitHub Actions removal) unless the user explicitly asks otherwise.
 
 Product rules: parent-only email OTP; no learner auth; one learner per family;
 steps 28–36 are scripted simulations; no live AI/chatbot/prompt storage. Do
