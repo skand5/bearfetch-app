@@ -15,10 +15,10 @@ class ShopScreen extends ConsumerStatefulWidget {
 
 class _ShopScreenState extends ConsumerState<ShopScreen> {
   static const _designWidth = 390.0;
-  static const _contentHeight = 1322.0;
+  // End after second accessory row. App shell owns bottom navigation.
+  static const _contentHeight = 1130.0;
   static const _assetHeight = 1402.0;
 
-  String category = 'Hats';
   String? selectedAccessory;
 
   void _share() {
@@ -117,20 +117,13 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                         ),
                       ),
                       _HoneyBalance(value: state.honey),
-                      Positioned.fill(
-                        child: _CategoryLayer(
-                          selected: category,
-                          onSelected: (value) =>
-                              setState(() => category = value),
-                        ),
-                      ),
                       // The source image contains static selected and disabled
                       // card states. Replace the complete grid so its state is
                       // driven only by the learner's owned accessories.
                       const _ShopCardGridMask(),
                       _ShopAccessoryCard(
                         left: 15,
-                        top: 683,
+                        top: 600,
                         width: 178,
                         height: 260,
                         title: 'Star Cap',
@@ -144,7 +137,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                       ),
                       _ShopAccessoryCard(
                         left: 204,
-                        top: 683,
+                        top: 600,
                         width: 166,
                         height: 260,
                         title: 'Moon Glasses',
@@ -158,7 +151,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                       ),
                       _ShopAccessoryCard(
                         left: 15,
-                        top: 949,
+                        top: 866,
                         width: 178,
                         height: 250,
                         title: 'Rocket Pack',
@@ -172,7 +165,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                       ),
                       _ShopAccessoryCard(
                         left: 204,
-                        top: 949,
+                        top: 866,
                         width: 166,
                         height: 250,
                         title: 'Galaxy Helm',
@@ -184,46 +177,30 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                         sourceLeft: 216,
                         sourceTop: 965,
                       ),
-                      const _SelectedAccessoryBarMask(),
                       if (selectedAccessory == 'Moon Glasses')
                         const _AccessorySelectionOutline(
                           left: 204,
-                          top: 684,
+                          top: 601,
                           width: 166,
                           height: 258,
                         ),
                       if (selectedAccessory == 'Rocket Pack')
                         const _AccessorySelectionOutline(
                           left: 20,
-                          top: 949,
+                          top: 866,
                           width: 166,
                           height: 250,
                         ),
                       if (selectedAccessory == 'Galaxy Helm')
                         const _AccessorySelectionOutline(
                           left: 204,
-                          top: 949,
+                          top: 866,
                           width: 166,
                           height: 250,
                         ),
-                      if (selectedAccessory != null)
-                        _SelectedAccessoryBar(
-                          accessoryId: selectedAccessory!,
-                          owned: state.ownedAccessories.contains(
-                            selectedAccessory,
-                          ),
-                          equipped: _BearAppearance.equippedIds(
-                            state.equippedAccessories,
-                          ).contains(selectedAccessory),
-                          onTap: () => _buyOrEquipAccessory(
-                            state,
-                            accessoryId: selectedAccessory!,
-                            price: _priceFor(selectedAccessory!),
-                          ),
-                        ),
                       Positioned(
                         left: 15,
-                        top: 684,
+                        top: 601,
                         width: 178,
                         height: 258,
                         child: _ShopHitTarget(
@@ -234,7 +211,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                       ),
                       Positioned(
                         left: 204,
-                        top: 684,
+                        top: 601,
                         width: 166,
                         height: 258,
                         child: _ShopHitTarget(
@@ -246,7 +223,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                       ),
                       Positioned(
                         left: 20,
-                        top: 949,
+                        top: 866,
                         width: 166,
                         height: 250,
                         child: _ShopHitTarget(
@@ -257,7 +234,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                       ),
                       Positioned(
                         left: 24,
-                        top: 874,
+                        top: 791,
                         width: 160,
                         height: 64,
                         child: _ShopHitTarget(
@@ -277,7 +254,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                       ),
                       Positioned(
                         left: 204,
-                        top: 949,
+                        top: 866,
                         width: 166,
                         height: 250,
                         child: _ShopHitTarget(
@@ -288,7 +265,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                       ),
                       Positioned(
                         left: 205,
-                        top: 874,
+                        top: 791,
                         width: 165,
                         height: 64,
                         child: _ShopHitTarget(
@@ -308,7 +285,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                       ),
                       Positioned(
                         left: 20,
-                        top: 1134,
+                        top: 1051,
                         width: 165,
                         height: 64,
                         child: _ShopHitTarget(
@@ -328,7 +305,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                       ),
                       Positioned(
                         left: 205,
-                        top: 1134,
+                        top: 1051,
                         width: 165,
                         height: 64,
                         child: _ShopHitTarget(
@@ -356,14 +333,6 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
       ),
     );
   }
-
-  static int _priceFor(String accessoryId) => switch (accessoryId) {
-    'Star Cap' => 25,
-    'Moon Glasses' => 60,
-    'Rocket Pack' => 90,
-    'Galaxy Helm' => 180,
-    _ => 0,
-  };
 
   static String _slotFor(String accessoryId) => switch (accessoryId) {
     'Star Cap' || 'Galaxy Helm' => 'head',
@@ -500,90 +469,15 @@ class _HoneyBalance extends StatelessWidget {
   );
 }
 
-class _CategoryLayer extends StatelessWidget {
-  const _CategoryLayer({required this.selected, required this.onSelected});
-
-  final String selected;
-  final ValueChanged<String> onSelected;
-
-  static const _categories = [
-    ('Hats', 20.0, 84.0),
-    ('Glasses', 115.0, 107.0),
-    ('Outfits', 236.0, 101.0),
-    ('Backpacks', 350.0, 116.0),
-  ];
-
-  @override
-  Widget build(BuildContext context) => Stack(
-    children: [
-      if (selected != 'Hats') ...[
-        const Positioned(
-          left: 20,
-          top: 604,
-          width: 84,
-          height: 45,
-          child: _CategoryPill(label: 'Hats', selected: false),
-        ),
-        for (final item in _categories.where((item) => item.$1 == selected))
-          Positioned(
-            left: item.$2,
-            top: 604,
-            width: item.$3,
-            height: 45,
-            child: _CategoryPill(label: item.$1, selected: true),
-          ),
-      ],
-      for (final item in _categories)
-        Positioned(
-          left: item.$2,
-          top: 596,
-          width: item.$3,
-          height: 62,
-          child: _ShopHitTarget(
-            label: '${item.$1} category',
-            selected: selected == item.$1,
-            onTap: () => onSelected(item.$1),
-          ),
-        ),
-    ],
-  );
-}
-
-class _CategoryPill extends StatelessWidget {
-  const _CategoryPill({required this.label, required this.selected});
-
-  final String label;
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    alignment: Alignment.center,
-    decoration: BoxDecoration(
-      color: selected ? const Color(0xFF293033) : const Color(0xFFFFCEB5),
-      borderRadius: BorderRadius.circular(25),
-    ),
-    child: Text(
-      label,
-      maxLines: 1,
-      style: TextStyle(
-        fontFamily: 'Fredoka',
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: selected ? Colors.white : const Color(0xFF171B1A),
-      ),
-    ),
-  );
-}
-
 class _ShopCardGridMask extends StatelessWidget {
   const _ShopCardGridMask();
 
   @override
   Widget build(BuildContext context) => const Positioned(
     left: 0,
-    top: 675,
+    top: 580,
     width: 390,
-    height: 530,
+    height: 625,
     child: ColoredBox(color: Color(0xFFFBF9F1)),
   );
 }
@@ -666,17 +560,7 @@ class _ShopAccessoryCard extends StatelessWidget {
               ),
             )
           else
-            Center(
-              child: Text(
-                '✿ $price',
-                style: const TextStyle(
-                  fontFamily: 'Fredoka',
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF9A5300),
-                ),
-              ),
-            ),
+            _HoneyJarPrice(price: price),
           const Spacer(),
           SizedBox(
             width: double.infinity,
@@ -752,16 +636,34 @@ class _CustomizationCrop extends StatelessWidget {
   );
 }
 
-class _SelectedAccessoryBarMask extends StatelessWidget {
-  const _SelectedAccessoryBarMask();
+class _HoneyJarPrice extends StatelessWidget {
+  const _HoneyJarPrice({required this.price});
+
+  final int price;
 
   @override
-  Widget build(BuildContext context) => const Positioned(
-    left: 0,
-    top: 1202,
-    width: 390,
-    height: 120,
-    child: ColoredBox(color: Color(0xFFFBF9F1)),
+  Widget build(BuildContext context) => Center(
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Image.asset(
+          'assets/icons/honey_jar.png',
+          width: 12,
+          height: 13,
+          filterQuality: FilterQuality.none,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          '$price',
+          style: TextStyle(
+            fontFamily: 'Fredoka',
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF9A5300),
+          ),
+        ),
+      ],
+    ),
   );
 }
 
@@ -795,140 +697,17 @@ class _AccessorySelectionOutline extends StatelessWidget {
   );
 }
 
-class _SelectedAccessoryBar extends StatelessWidget {
-  const _SelectedAccessoryBar({
-    required this.accessoryId,
-    required this.owned,
-    required this.equipped,
-    required this.onTap,
-  });
-
-  final String accessoryId;
-  final bool owned;
-  final bool equipped;
-  final VoidCallback onTap;
-
-  static const _descriptions = {
-    'Star Cap': 'A bright cap for...',
-    'Moon Glasses': 'A moonlit look for...',
-    'Rocket Pack': 'A rocket pack for...',
-    'Galaxy Helm': 'A cosmic helmet for...',
-  };
-
-  static const _prices = {
-    'Star Cap': 25,
-    'Moon Glasses': 60,
-    'Rocket Pack': 90,
-    'Galaxy Helm': 180,
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final price = _prices[accessoryId]!;
-    final action = owned ? (equipped ? 'Remove' : 'Equip') : 'Buy Accessory';
-    return Positioned(
-      left: 20,
-      top: 1208,
-      width: 350,
-      height: 98,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    accessoryId,
-                    style: const TextStyle(
-                      fontFamily: 'Fredoka',
-                      fontSize: 19,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF171B1A),
-                    ),
-                  ),
-                  Text(
-                    _descriptions[accessoryId]!,
-                    style: const TextStyle(
-                      fontFamily: 'Fredoka',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF5C4B3D),
-                    ),
-                  ),
-                  if (!owned)
-                    Text(
-                      '✿ $price',
-                      style: const TextStyle(
-                        fontFamily: 'Fredoka',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF9A5300),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Semantics(
-              button: true,
-              label: '$action $accessoryId',
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: onTap,
-                  borderRadius: BorderRadius.circular(28),
-                  child: Container(
-                    width: 154,
-                    height: 56,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: BearfetchColors.honey,
-                      borderRadius: BorderRadius.circular(28),
-                    ),
-                    child: Text(
-                      action,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontFamily: 'Fredoka',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF6D3A00),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _ShopHitTarget extends StatelessWidget {
-  const _ShopHitTarget({
-    required this.label,
-    required this.onTap,
-    this.selected,
-  });
+  const _ShopHitTarget({required this.label, required this.onTap});
 
   final String label;
   final VoidCallback onTap;
-  final bool? selected;
 
   @override
   Widget build(BuildContext context) => Semantics(
     label: label,
     button: true,
     enabled: true,
-    selected: selected,
     child: Material(
       type: MaterialType.transparency,
       child: InkWell(

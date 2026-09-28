@@ -11,12 +11,12 @@ class DevelopmentDemoAuthRepository implements AuthRepository {
     required Future<void> Function() resetDemoState,
   }) : _resetDemoState = resetDemoState;
 
-  static const demoUserId = 'development-demo-parent';
   static const demoEmail = 'demo.parent@bearfetch.invalid';
 
   final Future<void> Function() _resetDemoState;
   final _changes = StreamController<AuthSessionStatus>.broadcast();
   bool _hasSession = false;
+  String? _sessionUserId;
 
   @override
   bool get requiresAuthentication => true;
@@ -28,7 +28,7 @@ class DevelopmentDemoAuthRepository implements AuthRepository {
   bool get hasSession => _hasSession;
 
   @override
-  String? get currentUserId => _hasSession ? demoUserId : null;
+  String? get currentUserId => _hasSession ? _sessionUserId : null;
 
   @override
   String? get currentEmail => _hasSession ? demoEmail : null;
@@ -48,6 +48,11 @@ class DevelopmentDemoAuthRepository implements AuthRepository {
   @override
   Future<void> signInDemo() async {
     await _resetDemoState();
+    // The development demo deliberately starts clean on every login. A fresh
+    // RevenueCat test identity prevents a prior session's progress-insight
+    // entitlement from surviving the same reset that clears course progress.
+    _sessionUserId =
+        'development-demo-parent-${DateTime.now().microsecondsSinceEpoch}';
     _hasSession = true;
     _changes.add(AuthSessionStatus.authenticated);
   }
@@ -55,6 +60,7 @@ class DevelopmentDemoAuthRepository implements AuthRepository {
   @override
   Future<void> signOut() async {
     _hasSession = false;
+    _sessionUserId = null;
     _changes.add(AuthSessionStatus.signedOut);
   }
 }

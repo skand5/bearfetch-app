@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/state/app_state.dart';
+import '../../../core/widgets/equipped_bear_avatar.dart';
 
 abstract final class _HomeColors {
   static const canvas = Color(0xFFFDF6EC);
@@ -41,7 +42,7 @@ class HomeScreen extends ConsumerWidget {
                   child: ListView(
                     padding: EdgeInsets.zero,
                     children: [
-                      _HomeHeader(name: state.learnerName, scale: scale),
+                      _HomeHeader(scale: scale),
                       Padding(
                         padding: EdgeInsets.fromLTRB(
                           20 * scale,
@@ -55,6 +56,7 @@ class HomeScreen extends ConsumerWidget {
                             _MissionCard(
                               scale: scale,
                               started: state.courseStarted,
+                              finished: state.completedSteps >= 36,
                               step: state.completedSteps,
                               onPressed: () {
                                 context.go(state.nextCourseRoute);
@@ -70,15 +72,8 @@ class HomeScreen extends ConsumerWidget {
                               scale: scale,
                               progress: state.progress,
                               started: state.courseStarted,
+                              finished: state.completedSteps >= 36,
                               onPressed: () => context.go('/courses'),
-                            ),
-                            SizedBox(height: 32 * scale),
-                            _SectionLabel(label: 'DAILY QUEST', scale: scale),
-                            SizedBox(height: 16 * scale),
-                            _QuestCard(
-                              scale: scale,
-                              onPressed: () =>
-                                  context.go('/activity/unit-01-01'),
                             ),
                           ],
                         ),
@@ -96,8 +91,7 @@ class HomeScreen extends ConsumerWidget {
 }
 
 class _HomeHeader extends StatelessWidget {
-  const _HomeHeader({required this.name, required this.scale});
-  final String name;
+  const _HomeHeader({required this.scale});
   final double scale;
 
   @override
@@ -110,11 +104,7 @@ class _HomeHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          SvgPicture.asset(
-            'assets/icons/home/avatar.svg',
-            width: 47.89 * scale,
-            height: 48 * scale,
-          ),
+          EquippedBearAvatar(size: 48 * scale),
           SizedBox(width: 12 * scale),
           Expanded(
             child: Column(
@@ -122,7 +112,7 @@ class _HomeHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Hello $name 👋',
+                  'Hello Guest 👋',
                   maxLines: 1,
                   style: TextStyle(
                     fontFamily: 'BeVietnamPro',
@@ -135,7 +125,7 @@ class _HomeHeader extends StatelessWidget {
                 Transform.translate(
                   offset: Offset(0, -0.75 * scale),
                   child: Text(
-                    'Good Morning',
+                    'Get ready to learn AI!',
                     maxLines: 1,
                     style: TextStyle(
                       fontFamily: 'PlusJakartaSans',
@@ -202,11 +192,13 @@ class _MissionCard extends StatelessWidget {
   const _MissionCard({
     required this.scale,
     required this.started,
+    required this.finished,
     required this.step,
     required this.onPressed,
   });
   final double scale;
   final bool started;
+  final bool finished;
   final int step;
   final VoidCallback onPressed;
 
@@ -214,7 +206,6 @@ class _MissionCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     decoration: BoxDecoration(
       color: _HomeColors.hero,
-      border: Border.all(color: _HomeColors.cocoa, width: 3 * scale),
       borderRadius: BorderRadius.circular(32 * scale),
       boxShadow: [
         BoxShadow(
@@ -223,6 +214,10 @@ class _MissionCard extends StatelessWidget {
           blurRadius: 0,
         ),
       ],
+    ),
+    foregroundDecoration: BoxDecoration(
+      border: Border.all(color: _HomeColors.cocoa, width: 3 * scale),
+      borderRadius: BorderRadius.circular(32 * scale),
     ),
     clipBehavior: Clip.antiAlias,
     child: Stack(
@@ -315,7 +310,11 @@ class _MissionCard extends StatelessWidget {
               _FigmaButton(
                 scale: scale,
                 height: 60,
-                label: started ? 'Continue Mission' : 'Start First Mission',
+                label: finished
+                    ? 'Course Finished!'
+                    : started
+                    ? 'Continue Mission'
+                    : 'Start First Mission',
                 iconAsset: 'assets/icons/home/play.svg',
                 backgroundColor: _HomeColors.orange,
                 foregroundColor: _HomeColors.orangeText,
@@ -358,11 +357,13 @@ class _CourseCard extends StatelessWidget {
     required this.scale,
     required this.progress,
     required this.started,
+    required this.finished,
     required this.onPressed,
   });
   final double scale;
   final double progress;
   final bool started;
+  final bool finished;
   final VoidCallback onPressed;
 
   @override
@@ -426,7 +427,11 @@ class _CourseCard extends StatelessWidget {
         _FigmaButton(
           scale: scale,
           height: 48,
-          label: started ? 'Continue Course' : 'View Course',
+          label: finished
+              ? 'Course Finished!'
+              : started
+              ? 'Continue Course'
+              : 'View Course',
           iconAsset: 'assets/icons/home/arrow_right.svg',
           backgroundColor: Colors.white,
           foregroundColor: _HomeColors.cocoa,
@@ -442,139 +447,17 @@ class _CourseCard extends StatelessWidget {
   );
 }
 
-class _QuestCard extends StatelessWidget {
-  const _QuestCard({required this.scale, required this.onPressed});
-  final double scale;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) => _HardShadowCard(
-    scale: scale,
-    radius: 24,
-    padding: 23,
-    clip: true,
-    child: Stack(
-      clipBehavior: Clip.hardEdge,
-      children: [
-        Positioned(
-          right: -39 * scale,
-          top: -39 * scale,
-          child: SvgPicture.asset(
-            'assets/icons/home/quest_star.svg',
-            width: 88 * scale,
-            height: 90 * scale,
-          ),
-        ),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: EdgeInsets.only(top: 4 * scale),
-              child: Container(
-                width: 48 * scale,
-                height: 48 * scale,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEBDCFF),
-                  border: Border.all(
-                    color: _HomeColors.cocoa,
-                    width: 2 * scale,
-                  ),
-                  borderRadius: BorderRadius.circular(12 * scale),
-                ),
-                alignment: Alignment.center,
-                child: SvgPicture.asset(
-                  'assets/icons/home/quest_badge.svg',
-                  width: 10 * scale,
-                  height: 20 * scale,
-                ),
-              ),
-            ),
-            SizedBox(width: 16 * scale),
-            Expanded(
-              child: SizedBox(
-                height: 108 * scale,
-                child: OverflowBox(
-                  alignment: Alignment.topLeft,
-                  maxWidth: 263 * scale,
-                  maxHeight: 108 * scale,
-                  child: SizedBox(
-                    width: 263 * scale,
-                    height: 108 * scale,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Complete 1 short AI lesson',
-                          maxLines: 1,
-                          style: TextStyle(
-                            fontFamily: 'BeVietnamPro',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 16 * scale,
-                            height: 1.5,
-                            color: _HomeColors.cocoa,
-                          ),
-                        ),
-                        SizedBox(height: 4 * scale),
-                        Text(
-                          'Reward: +10 XP · +5 honey jars',
-                          maxLines: 1,
-                          style: TextStyle(
-                            fontFamily: 'BeVietnamPro',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 16 * scale,
-                            height: 1.5,
-                            color: _HomeColors.secondaryText,
-                          ),
-                        ),
-                        SizedBox(height: 12 * scale),
-                        SizedBox(
-                          height: 44 * scale,
-                          child: FilledButton(
-                            onPressed: onPressed,
-                            style: FilledButton.styleFrom(
-                              backgroundColor: _HomeColors.cocoa,
-                              foregroundColor: Colors.white,
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 26 * scale,
-                                vertical: 10 * scale,
-                              ),
-                              shape: const StadiumBorder(),
-                              textStyle: TextStyle(
-                                fontFamily: 'BeVietnamPro',
-                                fontWeight: FontWeight.w500,
-                                fontSize: 16 * scale,
-                                height: 1.5,
-                              ),
-                            ),
-                            child: const Text('Begin'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
-}
-
 class _HardShadowCard extends StatelessWidget {
   const _HardShadowCard({
     required this.scale,
     required this.radius,
     required this.padding,
     required this.child,
-    this.clip = false,
   });
   final double scale;
   final double radius;
   final double padding;
   final Widget child;
-  final bool clip;
 
   @override
   Widget build(BuildContext context) {
@@ -595,12 +478,7 @@ class _HardShadowCard extends StatelessWidget {
           ),
         ],
       ),
-      child: clip
-          ? ClipRRect(
-              borderRadius: BorderRadius.circular((radius - 3) * scale),
-              child: content,
-            )
-          : content,
+      child: content,
     );
   }
 }

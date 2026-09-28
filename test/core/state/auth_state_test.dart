@@ -94,15 +94,23 @@ void main() {
       addTearDown(container.dispose);
 
       await container.read(authFlowControllerProvider.future);
-      await container.read(authFlowControllerProvider.notifier).signInDemo();
+      final controller = container.read(authFlowControllerProvider.notifier);
+      await controller.signInDemo();
+      final firstSessionUserId = repository.currentUserId;
 
       expect(repository.hasSession, isTrue);
       expect(resetCount, 1);
       expect(repository.currentEmail, 'demo.parent@bearfetch.invalid');
+      expect(firstSessionUserId, startsWith('development-demo-parent-'));
       expect(
         container.read(authFlowControllerProvider).valueOrNull?.status,
         AuthFlowStatus.authenticated,
       );
+
+      await controller.signOut();
+      await controller.signInDemo();
+      expect(repository.currentUserId, isNot(firstSessionUserId));
+      expect(resetCount, 2);
     },
   );
 }

@@ -61,12 +61,105 @@ class OnboardingScreen extends StatelessWidget {
                 height: 58 * scale,
                 onPressed: () => context.go('/signup/account?mode=sign-in'),
               ),
+              _OnboardingCopy(
+                left: horizontalOffset + (54 * scale),
+                top: 480 * scale,
+                width: 282 * scale,
+                height: 145 * scale,
+              ),
             ],
           );
         },
       ),
     );
   }
+}
+
+/// The approved onboarding artwork contains legacy copy. Cover only its text
+/// area and render current product language as accessible native Flutter text.
+class _OnboardingCopy extends StatelessWidget {
+  const _OnboardingCopy({
+    required this.left,
+    required this.top,
+    required this.width,
+    required this.height,
+  });
+
+  final double left;
+  final double top;
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: left,
+      top: top,
+      width: width,
+      height: height,
+      child: Semantics(
+        label:
+            'AI Adventures for young learners. Create a family account, add your child\'s learner profile, and start the first AI-mission.',
+        child: ExcludeSemantics(
+          child: FittedBox(
+            fit: BoxFit.fill,
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              width: _designCopyWidth,
+              height: _designCopyHeight,
+              child: Column(
+                children: [
+                  SizedBox(
+                    width: _designCopyWidth,
+                    height: 54,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.topCenter,
+                      child: const Text(
+                        'AI Adventures for\nyoung learners',
+                        textAlign: TextAlign.center,
+                        textScaler: TextScaler.noScaling,
+                        style: TextStyle(
+                          color: BearfetchColors.cocoa,
+                          fontFamily: 'Fredoka',
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          height: 1.2,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 9),
+                  SizedBox(
+                    width: _designCopyWidth,
+                    height: 70,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.topCenter,
+                      child: const Text(
+                        "Create a family account, add your\nchild's learner profile, and start\nthe first AI-mission.",
+                        textAlign: TextAlign.center,
+                        textScaler: TextScaler.noScaling,
+                        style: TextStyle(
+                          color: BearfetchColors.bodyBrown,
+                          fontFamily: 'Nunito',
+                          fontSize: 13,
+                          height: 1.45,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static const _designCopyWidth = 282.0;
+  static const _designCopyHeight = 145.0;
 }
 
 class _DesignButton extends StatelessWidget {

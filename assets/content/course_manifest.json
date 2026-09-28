@@ -189,7 +189,7 @@
     {
       "id": "unit-04-03",
       "unit": 4,
-      "displayStep": 24,
+      "displayStep": 26,
       "sequence": 13,
       "badge": "CHAT FLOW",
       "title": "Send a Message",

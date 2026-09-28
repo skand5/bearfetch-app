@@ -58,6 +58,7 @@ class CourseCompletionScreen extends ConsumerWidget {
                                 filterQuality: FilterQuality.high,
                               ),
                             ),
+                            const _CompletionMessageOverlay(),
                             _CompletionRewards(honey: totalHoney, xp: totalXp),
                             _CompletionHitTarget(
                               label: 'Close',
@@ -111,6 +112,35 @@ class CourseCompletionScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _CompletionMessageOverlay extends StatelessWidget {
+  const _CompletionMessageOverlay();
+
+  @override
+  Widget build(BuildContext context) => Positioned(
+    left: 40,
+    top: 450,
+    width: 310,
+    height: 40,
+    child: ColoredBox(
+      color: Color(0xFFB0F2C2),
+      child: FittedBox(
+        alignment: Alignment.centerLeft,
+        fit: BoxFit.scaleDown,
+        child: Text(
+          'You completed your first AI Course!',
+          maxLines: 1,
+          style: TextStyle(
+            fontFamily: 'Fredoka',
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF293033),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 class _CompletionRewards extends StatelessWidget {

@@ -29,10 +29,13 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
   final Set<int> selected = {};
   final List<int> sequence = [];
   Timer? _lessonRevealTimer;
+  Timer? _botTestLoadingTimer;
   int _lessonRevealCount = 0;
   int? _activeChatQuestion;
   int? _activeStyleIndex;
   bool _botTestPromptTried = false;
+  double _botTestLoadProgress = 0;
+  bool _botTestLoaded = false;
 
   content.ActivityDefinition get activity =>
       ref.read(content.courseCatalogProvider).activity(widget.activityId);
@@ -42,6 +45,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
     super.initState();
     _resetInteractionState();
     _startLessonReveal();
+    _startBotTestLoading();
   }
 
   @override
@@ -50,12 +54,14 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
     if (oldWidget.activityId != widget.activityId) {
       _resetInteractionState();
       _startLessonReveal();
+      _startBotTestLoading();
     }
   }
 
   @override
   void dispose() {
     _lessonRevealTimer?.cancel();
+    _botTestLoadingTimer?.cancel();
     super.dispose();
   }
 
@@ -63,6 +69,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
   void reassemble() {
     super.reassemble();
     _resetInteractionState();
+    _startBotTestLoading();
   }
 
   void _resetInteractionState() {
@@ -71,6 +78,28 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
     _activeChatQuestion = null;
     _activeStyleIndex = null;
     _botTestPromptTried = false;
+    _botTestLoadProgress = 0;
+    _botTestLoaded = false;
+  }
+
+  void _startBotTestLoading() {
+    _botTestLoadingTimer?.cancel();
+    if (widget.activityId != 'unit-04-07') return;
+    _botTestLoadingTimer = Timer.periodic(const Duration(milliseconds: 100), (
+      timer,
+    ) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        _botTestLoadProgress = (_botTestLoadProgress + 0.08).clamp(0.0, 1.0);
+        if (_botTestLoadProgress >= 1) {
+          _botTestLoaded = true;
+          timer.cancel();
+        }
+      });
+    });
   }
 
   void _startLessonReveal() {
@@ -108,6 +137,15 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
         // every tone the learner tries, while rendering only the latest one.
         selected.add(index);
         _activeStyleIndex = index;
+      } else if (widget.activityId == 'unit-01-03') {
+        // Word-bank choices fill blanks in tap order. Any order remains valid
+        // for scoring; sequence only controls visual placement.
+        if (selected.remove(index)) {
+          sequence.remove(index);
+        } else if (sequence.length < 3) {
+          selected.add(index);
+          sequence.add(index);
+        }
       } else if (activity.kind == content.ActivityKind.multiSelect) {
         selected.contains(index) ? selected.remove(index) : selected.add(index);
       } else if (activity.kind == content.ActivityKind.sequence) {
@@ -163,6 +201,17 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
           List.generate(
             expectedParts.length,
             (index) => sequence[index] == expectedParts[index],
+          ).every((matches) => matches);
+      context.go('/result/${activity.id}?correct=$isCorrect');
+      return;
+    }
+    if (widget.activityId == 'unit-01-03') {
+      const expectedSequence = [0, 1, 2];
+      final isCorrect =
+          sequence.length == expectedSequence.length &&
+          List.generate(
+            expectedSequence.length,
+            (index) => sequence[index] == expectedSequence[index],
           ).every((matches) => matches);
       context.go('/result/${activity.id}?correct=$isCorrect');
       return;
@@ -246,6 +295,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
             semanticLabel: a.title,
             assetPath: 'assets/illustrations/unit_01_01.png',
             assetHeight: 1200,
+            contentHeight: 1298,
             overlays: [
               _LessonMessageSequence(revealedCount: _lessonRevealCount),
             ],
@@ -279,7 +329,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
               _ArtworkHitTarget(
                 label: 'Start',
                 left: 14,
-                top: 1114,
+                top: 1214,
                 width: 362,
                 height: 72,
                 onTap: _check,
@@ -390,6 +440,11 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
       );
     }
     if (a.id == 'unit-01-03') {
+      const slotTargets = [
+        (52.0, 444.0, 162.0),
+        (52.0, 534.0, 120.0),
+        (52.0, 669.0, 120.0),
+      ];
       return Scaffold(
         body: SafeArea(
           child: _ActivityArtwork(
@@ -423,29 +478,17 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                     );
                 },
               ),
-              if (!selected.contains(0))
-                const _ArtworkWordSlot(
-                  left: 52,
-                  top: 444,
-                  width: 162,
-                  label: 'Tap word',
-                  filled: false,
-                ),
-              if (selected.contains(1))
-                const _ArtworkWordSlot(
-                  left: 52,
-                  top: 534,
-                  width: 120,
-                  label: 'Text',
-                  filled: true,
-                ),
-              if (selected.contains(2))
-                const _ArtworkWordSlot(
-                  left: 52,
-                  top: 669,
-                  width: 120,
-                  label: 'Answer',
-                  filled: true,
+              for (var slot = 0; slot < slotTargets.length; slot++)
+                _ArtworkWordSlot(
+                  left: slotTargets[slot].$1,
+                  top: slotTargets[slot].$2,
+                  width: slotTargets[slot].$3,
+                  label: slot < sequence.length
+                      ? sequence[slot] == 2
+                            ? 'Answer Questions'
+                            : a.options[sequence[slot]]
+                      : 'Tap word',
+                  filled: slot < sequence.length,
                 ),
               if (!selected.contains(0))
                 const _ArtworkWordBankChip(
@@ -454,6 +497,8 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                   width: 180,
                   label: 'Human language',
                   placed: false,
+                  fontFamily: 'Fredoka',
+                  fontWeight: FontWeight.w700,
                 ),
               if (selected.contains(1))
                 const _ArtworkWordBankChip(
@@ -468,7 +513,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                   left: 20,
                   top: 992,
                   width: 188,
-                  label: 'Answer questions',
+                  label: 'Answer Questions',
                   placed: true,
                 ),
               for (final target in const [
@@ -757,6 +802,9 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                   top: [323.0, 499.0, 662.0][group],
                   width: [89.0, 94.0, 94.0][group],
                   height: group == 0 ? 50 : 40,
+                  backgroundColor: group == 0
+                      ? const Color(0xFFA0D2EB)
+                      : const Color(0xFFF5F4EC),
                   label: groupSelections[group] == null
                       ? null
                       : choices[groupSelections[group]!].$1,
@@ -768,6 +816,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                   width: choices[index].$4,
                   label: choices[index].$1,
                   selected: groupSelections[index ~/ 3] == index,
+                  coverBakedOutline: index == 0,
                   height: index < 3 ? 38 : 34,
                 ),
               for (var index = 0; index < choices.length; index++)
@@ -820,6 +869,13 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
             assetPath: 'assets/illustrations/unit_02_03.png',
             assetHeight: 1246,
             hitTargets: [
+              const Positioned(
+                left: 0,
+                top: 700,
+                width: 390,
+                height: 430,
+                child: ColoredBox(color: Color(0xFFFFF8EF)),
+              ),
               _ArtworkHitTarget(
                 label: 'Back to Courses',
                 left: 10,
@@ -848,46 +904,77 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
               ),
               _ArtworkMemoryReplyCard(
                 top: 721,
-                height: 194,
+                height: 150,
                 reply: 'Reply A:',
                 body:
                     'Mars is called the Red Planet. It has dusty red soil, tall volcanoes, and two small moons.',
-                tag: 'Uses memory',
-                positiveTag: true,
                 selected: selectedReply == 0,
               ),
               _ArtworkMemoryReplyCard(
-                top: 932,
-                height: 166,
+                top: 888,
+                height: 120,
                 reply: 'Reply B:',
                 body:
                     'Which planet do you mean? Please tell me the planet name first.',
-                tag: 'No memory',
-                positiveTag: false,
                 selected: selectedReply == 1,
+              ),
+              const Positioned(
+                left: 0,
+                top: 1060,
+                width: 390,
+                height: 186,
+                child: IgnorePointer(
+                  child: ColoredBox(color: Color(0xFFFFF8EF)),
+                ),
+              ),
+              Positioned(
+                left: 0,
+                top: 1060,
+                width: 390,
+                height: 116,
+                child: IgnorePointer(
+                  child: ClipRect(
+                    child: OverflowBox(
+                      alignment: Alignment.topLeft,
+                      minWidth: 390,
+                      maxWidth: 390,
+                      minHeight: 1246,
+                      maxHeight: 1246,
+                      child: Transform.translate(
+                        offset: const Offset(0, -1130),
+                        child: Image.asset(
+                          'assets/illustrations/unit_02_03.png',
+                          width: 390,
+                          height: 1246,
+                          fit: BoxFit.fill,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
               _ArtworkHitTarget(
                 label: 'Reply A uses memory',
                 left: 20,
                 top: 721,
                 width: 350,
-                height: 194,
+                height: 150,
                 selected: selectedReply == 0,
                 onTap: () => _toggle(0),
               ),
               _ArtworkHitTarget(
                 label: 'Reply B has no memory',
                 left: 20,
-                top: 932,
+                top: 888,
                 width: 350,
-                height: 166,
+                height: 120,
                 selected: selectedReply == 1,
                 onTap: () => _toggle(1),
               ),
               _ArtworkHitTarget(
                 label: 'Hint',
                 left: 20,
-                top: 1193,
+                top: 1123,
                 width: 51,
                 height: 53,
                 onTap: () {
@@ -905,7 +992,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
               _ArtworkHitTarget(
                 label: 'Check',
                 left: 97,
-                top: 1193,
+                top: 1123,
                 width: 272,
                 height: 53,
                 onTap: _check,
@@ -928,6 +1015,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
             assetPath: 'assets/illustrations/unit_03_01.png',
             assetHeight: 1705,
             contentHeight: 1537,
+            overlays: const [_PromptTitleOverlay()],
             hitTargets: [
               _ArtworkHitTarget(
                 label: 'Back to Courses',
@@ -1046,7 +1134,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                     );
                 },
               ),
-              if (selectedStyle != null && selectedStyle != 0)
+              if (selectedStyle != null)
                 _ArtworkStyleAnswer(styleIndex: selectedStyle),
               for (var index = 0; index < styleRows.length; index++)
                 _ArtworkStyleOption(
@@ -1098,8 +1186,8 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
     if (a.id == 'unit-03-03') {
       const roleRows = [
         ('Be Rude', 656.0),
-        ('Be Complicated', 746.0),
-        ('Be Respectful', 833.0),
+        ('Be Complicated', 751.0),
+        ('Be Respectful', 846.0),
       ];
       final int? selectedRole = selected.isEmpty ? null : selected.first;
       return Scaffold(
@@ -1134,6 +1222,15 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                       ),
                     );
                 },
+              ),
+              const Positioned(
+                left: 0,
+                top: 645,
+                width: 390,
+                height: 289,
+                child: IgnorePointer(
+                  child: ColoredBox(color: Color(0xFFFFF8EF)),
+                ),
               ),
               for (var index = 0; index < roleRows.length; index++)
                 _ArtworkRoleOption(
@@ -1422,6 +1519,49 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                     );
                 },
               ),
+              const Positioned(
+                left: 98,
+                top: 87,
+                width: 194,
+                height: 21,
+                child: IgnorePointer(
+                  child: ColoredBox(color: Color(0xFFFFF8EF)),
+                ),
+              ),
+              const Positioned(
+                left: 98,
+                top: 87,
+                width: 194,
+                height: 21,
+                child: IgnorePointer(
+                  child: Center(
+                    child: Text(
+                      'Step 26 of 36',
+                      style: TextStyle(
+                        fontFamily: 'Nunito',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF74675F),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              // Mask only connector pixels; keep card borders untouched.
+              const Positioned(
+                left: 43,
+                top: 553,
+                width: 4,
+                height: 16,
+                child: ColoredBox(color: Color(0xFFFBF9F1)),
+              ),
+              const Positioned(
+                left: 43,
+                top: 778,
+                width: 4,
+                height: 13,
+                child: ColoredBox(color: Color(0xFFFBF9F1)),
+              ),
               for (var group = 0; group < 3; group++)
                 if (!selected.contains(defaultAnswers[group]))
                   for (var offset = 0; offset < 3; offset++)
@@ -1601,6 +1741,48 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                     );
                 },
               ),
+              const Positioned(
+                left: 320,
+                top: 755,
+                width: 35,
+                height: 23,
+                child: IgnorePointer(
+                  child: CustomPaint(painter: _ArtworkFunBotCornerRepair()),
+                ),
+              ),
+              const _ArtworkChatbotTypeBadge(
+                cardColor: Color(0xFFA0D2EB),
+                maskLeft: 236,
+                maskTop: 526,
+                maskWidth: 112,
+                maskHeight: 34,
+                left: 250,
+                top: 531,
+                width: 100,
+                label: 'Learn & Solve',
+              ),
+              const _ArtworkChatbotTypeBadge(
+                cardColor: Color(0xFFFFD1BA),
+                maskLeft: 236,
+                maskTop: 677,
+                maskWidth: 112,
+                maskHeight: 34,
+                left: 250,
+                top: 682,
+                width: 100,
+                label: 'Play & Explore',
+              ),
+              const _ArtworkChatbotTypeBadge(
+                cardColor: Color(0xFFB0F2C2),
+                maskLeft: 235,
+                maskTop: 810,
+                maskWidth: 97,
+                maskHeight: 25,
+                left: 255,
+                top: 811,
+                width: 95,
+                label: 'Guide & Grow',
+              ),
               _ArtworkChatbotTypeCards(selectedIndex: selectedBot),
               for (var index = 0; index < cardBounds.length; index++)
                 _ArtworkHitTarget(
@@ -1743,7 +1925,12 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
             assetPath: 'assets/illustrations/unit_04_07.png',
             assetHeight: 1261,
             overlays: [
-              _ArtworkBotTestOutput(promptTried: _botTestPromptTried),
+              _ArtworkBotTestOutput(
+                ready: _botTestLoaded,
+                promptTried: _botTestPromptTried,
+              ),
+              if (!_botTestLoaded)
+                _ArtworkBotTestLoading(progress: _botTestLoadProgress),
               if (_botTestPromptTried)
                 _ArtworkBotTestSelection(
                   selectYes: selectedResponse == null
@@ -1778,16 +1965,17 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                     );
                 },
               ),
-              _ArtworkHitTarget(
-                label: 'Try Example Prompt',
-                left: 47,
-                top: _botTestPromptTried ? 863 : 562,
-                width: 297,
-                height: 57,
-                onTap: () {
-                  setState(() => _botTestPromptTried = true);
-                },
-              ),
+              if (_botTestLoaded)
+                _ArtworkHitTarget(
+                  label: 'Try Example Prompt',
+                  left: 47,
+                  top: _botTestPromptTried ? 863 : 562,
+                  width: 297,
+                  height: 57,
+                  onTap: () {
+                    setState(() => _botTestPromptTried = true);
+                  },
+                ),
               if (_botTestPromptTried) ...[
                 _ArtworkHitTarget(
                   label: 'Yes, it helped',
@@ -2038,6 +2226,7 @@ class _ActivityArtwork extends StatelessWidget {
                           height: assetHeight - artworkTailFillTop!,
                           child: const ColoredBox(color: Color(0xFFFFF8EF)),
                         ),
+                      _ArtworkCourseTitle(assetPath: assetPath),
                       ...overlays,
                       ...hitTargets,
                     ],
@@ -2047,6 +2236,108 @@ class _ActivityArtwork extends StatelessWidget {
             ),
           );
         },
+      ),
+    ),
+  );
+}
+
+class _ArtworkCourseTitle extends StatelessWidget {
+  const _ArtworkCourseTitle({required this.assetPath});
+
+  final String assetPath;
+
+  int get _unit {
+    final match = RegExp(r'unit_(\d{2})').firstMatch(assetPath);
+    return match == null ? 1 : int.parse(match.group(1)!);
+  }
+
+  double get _progressTop => switch (assetPath.split('/').last) {
+    'unit_01_04.png' || 'unit_02_01.png' => 53,
+    'unit_02_03.png' => 62,
+    'unit_03_02.png' => 47,
+    'unit_03_01.png' ||
+    'unit_03_03.png' ||
+    'unit_04_01.png' ||
+    'unit_04_03.png' => 72,
+    'unit_04_02.png' => 71,
+    _ => 73,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final titleTop = (_progressTop - 48).clamp(0.0, 25.0);
+    final unitTop = titleTop + 26;
+    return Positioned(
+      left: 82,
+      top: 0,
+      width: 226,
+      height: _progressTop - 2,
+      child: Stack(
+        children: [
+          const Positioned.fill(child: ColoredBox(color: Color(0xFFFFF8EF))),
+          Positioned(
+            top: titleTop,
+            width: 226,
+            height: 16,
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'From Understanding to Building LLMs',
+                  style: const TextStyle(
+                    fontFamily: 'BeVietnamPro',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF293033),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: unitTop,
+            width: 226,
+            height: 14,
+            child: Center(
+              child: Text(
+                'Unit $_unit of 5',
+                style: const TextStyle(
+                  fontFamily: 'Nunito',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF293033),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PromptTitleOverlay extends StatelessWidget {
+  const _PromptTitleOverlay();
+
+  @override
+  Widget build(BuildContext context) => const Positioned(
+    left: 19,
+    top: 180,
+    width: 350,
+    height: 32,
+    child: ColoredBox(
+      color: Color(0xFFFFF8EF),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          'Talk to AI Properly',
+          style: TextStyle(
+            fontFamily: 'Nunito',
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF293033),
+          ),
+        ),
       ),
     ),
   );
@@ -2144,7 +2435,7 @@ class _ArtworkLogoTile extends StatelessWidget {
             height: 79,
             child: Image.asset(
               assetPath,
-              fit: BoxFit.fill,
+              fit: BoxFit.contain,
               filterQuality: FilterQuality.high,
               excludeFromSemantics: true,
             ),
@@ -2174,71 +2465,232 @@ class _LessonMessageSequence extends StatelessWidget {
 
   final int revealedCount;
 
-  static const _messageAssets = <(double top, double height, String path)>[
-    (244, 66, 'assets/illustrations/unit_01_01_messages/message_01.png'),
-    (308, 89, 'assets/illustrations/unit_01_01_messages/message_02.png'),
-    (397, 87, 'assets/illustrations/unit_01_01_messages/message_03.png'),
-    (485, 113, 'assets/illustrations/unit_01_01_messages/message_04.png'),
-    (601, 175, 'assets/illustrations/unit_01_01_messages/message_05.png'),
-    (778, 62, 'assets/illustrations/unit_01_01_messages/message_06.png'),
-    (841, 87, 'assets/illustrations/unit_01_01_messages/message_07.png'),
-    (930, 111, 'assets/illustrations/unit_01_01_messages/message_08.png'),
-    (1040, 64, 'assets/illustrations/unit_01_01_messages/message_09.png'),
-  ];
-
   @override
   Widget build(BuildContext context) => Stack(
     children: [
-      const Positioned(
+      Positioned(
         left: 0,
         top: 240,
         width: 390,
-        height: 870,
+        height: 960,
         child: ColoredBox(color: Color(0xFFFFF8EF)),
       ),
-      for (var index = 0; index < _messageAssets.length; index++)
-        _LessonMessageAsset(
-          top: _messageAssets[index].$1,
-          height: _messageAssets[index].$2,
-          assetPath: _messageAssets[index].$3,
-          visible: index < revealedCount,
+      _LessonBubble(
+        top: 244,
+        width: 202,
+        height: 66,
+        text: 'Hi! I’m BearFetch AI 👋',
+        visible: revealedCount > 0,
+      ),
+      _LessonBubble(
+        top: 322,
+        height: 89,
+        text: 'Today we’ll learn about AI\nchatbots.',
+        visible: revealedCount > 1,
+      ),
+      _LessonBubble(
+        top: 423,
+        height: 87,
+        color: const Color(0xFFB4E6C9),
+        text:
+            'A chatbot is an AI tool that uses\nlanguage to engage with its user',
+        visible: revealedCount > 2,
+      ),
+      _LessonBubble(
+        top: 522,
+        height: 113,
+        text:
+            'Chatbots can answer questions,\nsuggest ideas, and help you\ninside apps or websites.',
+        visible: revealedCount > 3,
+      ),
+      _LessonExamplesBubble(visible: revealedCount > 4),
+      _LessonBubble(
+        top: 834,
+        height: 62,
+        text: 'Every app doesn’t always need a\nchatbot.',
+        visible: revealedCount > 5,
+      ),
+      _LessonBubble(
+        top: 908,
+        height: 87,
+        text:
+            'Chatbots normally engage users\nwith words, hence the name\nchatbot!',
+        visible: revealedCount > 6,
+      ),
+      _LessonBubble(
+        top: 1007,
+        height: 111,
+        color: const Color(0xFFA0D2EB),
+        text:
+            'In the next activity, you’ll sort\nexamples into “Chatbot” and\n“Not Chatbot.”',
+        visible: revealedCount > 7,
+      ),
+      _LessonBubble(
+        top: 1130,
+        width: 164,
+        height: 64,
+        text: 'Ready to begin?',
+        visible: revealedCount > 8,
+      ),
+      Positioned(
+        left: 14,
+        top: 1214,
+        width: 362,
+        height: 72,
+        child: IgnorePointer(
+          child: BearfetchPrimaryButton(
+            label: 'Start',
+            icon: Icons.play_arrow_rounded,
+            onPressed: () {},
+          ),
         ),
+      ),
     ],
   );
 }
 
-class _LessonMessageAsset extends StatelessWidget {
-  const _LessonMessageAsset({
+class _LessonBubble extends StatelessWidget {
+  const _LessonBubble({
     required this.top,
     required this.height,
-    required this.assetPath,
+    required this.text,
     required this.visible,
+    this.width = 300,
+    this.color = Colors.white,
   });
 
   final double top;
+  final double width;
   final double height;
-  final String assetPath;
+  final Color color;
+  final String text;
   final bool visible;
+
+  static const _textStyle = TextStyle(
+    fontFamily: 'Nunito',
+    fontSize: 15,
+    height: 1.25,
+    fontWeight: FontWeight.w700,
+    color: Color(0xFF5A4840),
+  );
 
   @override
   Widget build(BuildContext context) => Positioned(
-    left: 0,
+    left: 20,
     top: top,
-    width: 390,
+    width: width,
     height: height,
     child: IgnorePointer(
       child: AnimatedOpacity(
         opacity: visible ? 1 : 0,
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOut,
-        child: Image.asset(
-          assetPath,
-          fit: BoxFit.fill,
-          filterQuality: FilterQuality.high,
-          excludeFromSemantics: true,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+          alignment: Alignment.centerLeft,
+          decoration: BoxDecoration(
+            color: color,
+            border: Border.all(color: const Color(0xFF6B5149), width: 2),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0xFF6B5149),
+                offset: Offset(0, 3),
+                blurRadius: 0,
+              ),
+            ],
+          ),
+          child: Text(text, style: _textStyle),
         ),
       ),
     ),
+  );
+}
+
+class _LessonExamplesBubble extends StatelessWidget {
+  const _LessonExamplesBubble({required this.visible});
+
+  final bool visible;
+
+  @override
+  Widget build(BuildContext context) => Positioned(
+    left: 20,
+    top: 647,
+    width: 300,
+    height: 175,
+    child: IgnorePointer(
+      child: AnimatedOpacity(
+        opacity: visible ? 1 : 0,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 9),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: const Color(0xFF6B5149), width: 2),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0xFF6B5149),
+                offset: Offset(0, 3),
+                blurRadius: 0,
+              ),
+            ],
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'You may have seen chatbots in\nplaces like:',
+                style: _LessonBubble._textStyle,
+              ),
+              SizedBox(height: 10),
+              Row(
+                children: [
+                  _LessonExampleChip(label: 'Games', color: Color(0xFFFFCEB8)),
+                  SizedBox(width: 8),
+                  _LessonExampleChip(
+                    label: 'Shopping',
+                    color: Color(0xFFC5A9F6),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+              Row(
+                children: [
+                  _LessonExampleChip(label: 'Search', color: Color(0xFF86F6DA)),
+                  SizedBox(width: 8),
+                  _LessonExampleChip(
+                    label: 'Support',
+                    color: Color(0xFFFFA247),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _LessonExampleChip extends StatelessWidget {
+  const _LessonExampleChip({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 28,
+    padding: const EdgeInsets.symmetric(horizontal: 12),
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: color,
+      border: Border.all(color: const Color(0xFF6B5149), width: 2),
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Text(label, style: _LessonBubble._textStyle.copyWith(fontSize: 13)),
   );
 }
 
@@ -2291,14 +2743,17 @@ class _ArtworkWordSlot extends StatelessWidget {
                   BoxShadow(color: Color(0xFF293033), offset: Offset(0, 3)),
                 ],
               ),
-              child: Text(
-                label,
-                maxLines: 1,
-                style: const TextStyle(
-                  fontFamily: 'Nunito',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF293033),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  style: const TextStyle(
+                    fontFamily: 'Nunito',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF293033),
+                  ),
                 ),
               ),
             )
@@ -2310,9 +2765,9 @@ class _ArtworkWordSlot extends StatelessWidget {
                   child: Text(
                     label,
                     style: const TextStyle(
-                      fontFamily: 'Nunito',
+                      fontFamily: 'Fredoka',
                       fontSize: 14,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w500,
                       color: Color(0xFFE2C9BA),
                     ),
                   ),
@@ -2330,6 +2785,8 @@ class _ArtworkWordBankChip extends StatelessWidget {
     required this.width,
     required this.label,
     required this.placed,
+    this.fontFamily = 'Nunito',
+    this.fontWeight = FontWeight.w800,
   });
 
   final double left;
@@ -2337,6 +2794,8 @@ class _ArtworkWordBankChip extends StatelessWidget {
   final double width;
   final String label;
   final bool placed;
+  final String fontFamily;
+  final FontWeight fontWeight;
 
   @override
   Widget build(BuildContext context) => Positioned(
@@ -2365,9 +2824,9 @@ class _ArtworkWordBankChip extends StatelessWidget {
           label,
           maxLines: 1,
           style: TextStyle(
-            fontFamily: 'Nunito',
+            fontFamily: fontFamily,
             fontSize: 14,
-            fontWeight: FontWeight.w800,
+            fontWeight: fontWeight,
             color: placed ? const Color(0xFF858A88) : const Color(0xFF293033),
           ),
         ),
@@ -2462,63 +2921,84 @@ class _ArtworkChatConversation extends StatelessWidget {
     ];
 
     return Positioned(
-      left: 23,
-      top: 278,
-      width: 344,
-      height: 421,
+      left: 20,
+      top: 275,
+      width: 350,
+      height: 434,
       child: IgnorePointer(
-        child: ColoredBox(
-          color: const Color(0xFFFBF9F1),
-          child: Stack(
-            children: [
-              const Positioned(
-                left: 57,
-                top: 34,
-                width: 264,
-                child: _ArtworkChatBubble(
-                  text:
-                      'Hi! I’m BearFetch Bot. Ask me a question, and I’ll reply with an answer.',
-                  color: Color(0xFFA9EDBE),
+        child: Stack(
+          children: [
+            const Positioned.fill(child: ColoredBox(color: Color(0xFFFCF6EC))),
+            Positioned(
+              left: 1,
+              top: 1,
+              width: 348,
+              height: 428,
+              child: Container(
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFF293033), width: 2),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ),
-              const Positioned(
-                left: 16,
-                top: 93,
-                child: _ArtworkChatAvatar(bot: true),
-              ),
-              if (questionIndex case final selectedQuestion?) ...[
-                Positioned(
-                  right: 28,
-                  top: 141,
-                  width: 252,
-                  child: _ArtworkChatBubble(
-                    text: questions[selectedQuestion],
-                    color: const Color(0xFFFFCEB8),
-                    compact: true,
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: ColoredBox(
+                    color: Colors.transparent,
+                    child: Stack(
+                      children: [
+                        const Positioned(
+                          left: 57,
+                          top: 34,
+                          width: 264,
+                          child: _ArtworkChatBubble(
+                            text:
+                                'Hi! I’m BearFetch Bot. Ask me a question, and I’ll reply with an answer.',
+                            color: Color(0xFFA9EDBE),
+                          ),
+                        ),
+                        const Positioned(
+                          left: 16,
+                          top: 93,
+                          child: _ArtworkChatAvatar(bot: true),
+                        ),
+                        if (questionIndex case final selectedQuestion?) ...[
+                          Positioned(
+                            right: 28,
+                            top: 141,
+                            width: 252,
+                            child: _ArtworkChatBubble(
+                              text: questions[selectedQuestion],
+                              color: const Color(0xFFFFCEB8),
+                              compact: true,
+                            ),
+                          ),
+                          const Positioned(
+                            right: 5,
+                            top: 151,
+                            child: _ArtworkChatAvatar(bot: false),
+                          ),
+                          Positioned(
+                            left: 57,
+                            top: 201,
+                            width: 264,
+                            child: _ArtworkChatBubble(
+                              text: answers[selectedQuestion],
+                              color: const Color(0xFFA9EDBE),
+                            ),
+                          ),
+                          const Positioned(
+                            left: 16,
+                            top: 260,
+                            child: _ArtworkChatAvatar(bot: true),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 ),
-                const Positioned(
-                  right: 5,
-                  top: 151,
-                  child: _ArtworkChatAvatar(bot: false),
-                ),
-                Positioned(
-                  left: 57,
-                  top: 201,
-                  width: 264,
-                  child: _ArtworkChatBubble(
-                    text: answers[selectedQuestion],
-                    color: const Color(0xFFA9EDBE),
-                  ),
-                ),
-                const Positioned(
-                  left: 16,
-                  top: 260,
-                  child: _ArtworkChatAvatar(bot: true),
-                ),
-              ],
-            ],
-          ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -2678,6 +3158,7 @@ class _ArtworkPredictionSlot extends StatelessWidget {
     required this.top,
     required this.width,
     required this.label,
+    required this.backgroundColor,
     this.height = 50,
   });
 
@@ -2685,6 +3166,7 @@ class _ArtworkPredictionSlot extends StatelessWidget {
   final double top;
   final double width;
   final String? label;
+  final Color backgroundColor;
   final double height;
 
   @override
@@ -2694,35 +3176,44 @@ class _ArtworkPredictionSlot extends StatelessWidget {
     width: width,
     height: height,
     child: IgnorePointer(
-      child: Container(
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: label == null
-              ? const Color(0xFFFFFDF8)
-              : const Color(0xFFFFCEB8),
-          border: Border.all(
-            color: label == null
-                ? const Color(0xFFDCC9BA)
-                : const Color(0xFFFF9F43),
-            width: 2,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: -2,
+            top: -2,
+            width: width + 4,
+            height: height + 8,
+            child: ColoredBox(color: backgroundColor),
           ),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: const [
-            BoxShadow(color: Color(0xFFFF9F43), offset: Offset(0, 4)),
-          ],
-        ),
-        child: label == null
-            ? null
-            : Text(
-                label!,
-                maxLines: 1,
-                style: const TextStyle(
-                  fontFamily: 'Nunito',
-                  fontSize: 15,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFFFFA45E),
-                ),
+          Positioned.fill(
+            child: Container(
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: label == null
+                    ? const Color(0xFFFFFDF8)
+                    : const Color(0xFFFFCEB8),
+                border: Border.all(color: const Color(0xFFFF9F43), width: 2),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: const [
+                  BoxShadow(color: Color(0xFFFF9F43), offset: Offset(0, 4)),
+                ],
               ),
+              child: label == null
+                  ? null
+                  : Text(
+                      label!,
+                      maxLines: 1,
+                      style: const TextStyle(
+                        fontFamily: 'Nunito',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFFFFA45E),
+                      ),
+                    ),
+            ),
+          ),
+        ],
       ),
     ),
   );
@@ -2735,6 +3226,7 @@ class _ArtworkPredictionChoice extends StatelessWidget {
     required this.width,
     required this.label,
     required this.selected,
+    this.coverBakedOutline = false,
     this.height = 38,
   });
 
@@ -2743,6 +3235,7 @@ class _ArtworkPredictionChoice extends StatelessWidget {
   final double width;
   final String label;
   final bool selected;
+  final bool coverBakedOutline;
   final double height;
 
   @override
@@ -2758,6 +3251,8 @@ class _ArtworkPredictionChoice extends StatelessWidget {
           color: selected ? const Color(0xFFD5D5D5) : const Color(0xFFFFFDF8),
           border: selected
               ? Border.all(color: const Color(0xFFD5B98A), width: 2)
+              : coverBakedOutline
+              ? Border.all(color: const Color(0xFFFFFDF8), width: 2)
               : null,
           borderRadius: BorderRadius.circular(13),
         ),
@@ -2782,8 +3277,6 @@ class _ArtworkMemoryReplyCard extends StatelessWidget {
     required this.height,
     required this.reply,
     required this.body,
-    required this.tag,
-    required this.positiveTag,
     required this.selected,
   });
 
@@ -2791,8 +3284,6 @@ class _ArtworkMemoryReplyCard extends StatelessWidget {
   final double height;
   final String reply;
   final String body;
-  final String tag;
-  final bool positiveTag;
   final bool selected;
 
   @override
@@ -2803,13 +3294,9 @@ class _ArtworkMemoryReplyCard extends StatelessWidget {
     height: height,
     child: LayoutBuilder(
       builder: (context, constraints) {
-        final isCompressed = constraints.maxHeight < 180;
-        final padding = isCompressed
-            ? const EdgeInsets.fromLTRB(18, 14, 38, 10)
-            : const EdgeInsets.fromLTRB(25, 25, 46, 20);
-        final bodyFontSize = isCompressed ? 11.5 : 16.0;
-        final bodyHeight = isCompressed ? 1.3 : 1.45;
-        final tagFontSize = isCompressed ? 9.0 : 12.0;
+        const padding = EdgeInsets.fromLTRB(25, 20, 46, 16);
+        const bodyFontSize = 16.0;
+        const bodyHeight = 1.45;
 
         return IgnorePointer(
           child: Container(
@@ -2866,35 +3353,6 @@ class _ArtworkMemoryReplyCard extends StatelessWidget {
                                 height: bodyHeight,
                               ),
                         ),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: positiveTag
-                                ? const Color(0xFFE5F3DE)
-                                : const Color(0xFFFFF0EA),
-                            border: Border.all(
-                              color: positiveTag
-                                  ? const Color(0xFF72DDC5)
-                                  : const Color(0xFFD91F26),
-                            ),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            '${positiveTag ? '⚙' : '⊘'} $tag',
-                            style: TextStyle(
-                              fontFamily: 'Nunito',
-                              fontSize: tagFontSize,
-                              fontWeight: FontWeight.w900,
-                              color: positiveTag
-                                  ? const Color(0xFF007B63)
-                                  : const Color(0xFFD91F26),
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -2936,12 +3394,22 @@ class _ArtworkMemoryReplyCard extends StatelessWidget {
 }
 
 class _ArtworkBotTestOutput extends StatelessWidget {
-  const _ArtworkBotTestOutput({required this.promptTried});
+  const _ArtworkBotTestOutput({required this.ready, required this.promptTried});
 
+  final bool ready;
   final bool promptTried;
 
   @override
   Widget build(BuildContext context) {
+    if (!ready) {
+      return const Positioned(
+        left: 0,
+        top: 461,
+        width: 390,
+        height: 659,
+        child: IgnorePointer(child: ColoredBox(color: Color(0xFFFFF8EF))),
+      );
+    }
     if (promptTried) return const SizedBox.shrink();
 
     // The exported artwork is the expanded, post-prompt state. Cover it with
@@ -3045,6 +3513,35 @@ class _ArtworkBotTestOutput extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ArtworkBotTestLoading extends StatelessWidget {
+  const _ArtworkBotTestLoading({required this.progress});
+
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) => Positioned(
+    left: 256,
+    top: 389,
+    width: 95,
+    height: 8,
+    child: IgnorePointer(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: DecoratedBox(
+          decoration: const BoxDecoration(color: Color(0xFF8FE2CA)),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: FractionallySizedBox(
+              widthFactor: progress,
+              child: const ColoredBox(color: Color(0xFF00796B)),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 class _ArtworkBotTestSelection extends StatelessWidget {
@@ -3204,7 +3701,7 @@ class _ArtworkChatbotTrainingSummary extends StatelessWidget {
                           'Your chatbot: ${_names[index]}',
                           style: const TextStyle(
                             fontFamily: 'Nunito',
-                            fontSize: 18,
+                            fontSize: 20,
                             height: 1.2,
                             fontWeight: FontWeight.w900,
                             color: Color(0xFF00796B),
@@ -3215,7 +3712,7 @@ class _ArtworkChatbotTrainingSummary extends StatelessWidget {
                           _descriptions[index],
                           style: const TextStyle(
                             fontFamily: 'Nunito',
-                            fontSize: 14,
+                            fontSize: 16,
                             height: 1.3,
                             fontWeight: FontWeight.w700,
                             color: Color(0xFF00796B),
@@ -3283,6 +3780,91 @@ class _ArtworkTrainingSelection extends StatelessWidget {
                 Icons.check_rounded,
                 color: Colors.white,
                 size: 25,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ArtworkFunBotCornerRepair extends CustomPainter {
+  const _ArtworkFunBotCornerRepair();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.clipRect(Offset.zero & size);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(-300, -90, 335, 113),
+        const Radius.circular(20),
+      ),
+      Paint()..color = const Color(0xFFFFD1BA),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _ArtworkChatbotTypeBadge extends StatelessWidget {
+  const _ArtworkChatbotTypeBadge({
+    required this.cardColor,
+    required this.maskLeft,
+    required this.maskTop,
+    required this.maskWidth,
+    required this.maskHeight,
+    required this.left,
+    required this.top,
+    required this.width,
+    required this.label,
+  });
+
+  final Color cardColor;
+  final double maskLeft;
+  final double maskTop;
+  final double maskWidth;
+  final double maskHeight;
+  final double left;
+  final double top;
+  final double width;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned(
+          left: maskLeft,
+          top: maskTop,
+          width: maskWidth,
+          height: maskHeight,
+          child: IgnorePointer(child: ColoredBox(color: cardColor)),
+        ),
+        Positioned(
+          left: left,
+          top: top,
+          width: width,
+          height: 27,
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFDF8),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Center(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.clip,
+                  style: const TextStyle(
+                    fontFamily: 'Nunito',
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF675C54),
+                  ),
+                ),
               ),
             ),
           ),
@@ -3442,15 +4024,31 @@ class _ArtworkChatFlowPill extends StatelessWidget {
             BoxShadow(color: Color(0xFF293033), offset: Offset(0, 4)),
           ],
         ),
-        child: Text(
-          '${selected ? '● ' : ''}$label',
-          maxLines: 1,
-          style: const TextStyle(
-            fontFamily: 'Nunito',
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF4B3B32),
-          ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (selected) ...[
+              const Icon(
+                Icons.check_circle_rounded,
+                size: 16,
+                color: Color(0xFF2F5C49),
+              ),
+              const SizedBox(width: 4),
+            ],
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: 'Nunito',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF4B3B32),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     ),
@@ -3763,11 +4361,14 @@ class _ArtworkStyleAnswer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isSerious = styleIndex == 1;
-    final styleName = isSerious ? 'Serious style' : 'Friendly style';
-    final answer = isSerious
-        ? '“A black hole is a region of space where gravity is so strong that nothing, including light, can escape.”'
-        : '“A black hole is a super-strong space neighbor that pulls everything close—even light—but it stays very far away from us.”';
+    const styleNames = ['Funny style', 'Serious style', 'Friendly style'];
+    const answers = [
+      '“A black hole is like a cosmic vacuum cleaner with a huge appetite. If something gets too close, even light cannot escape its pull.”',
+      '“A black hole is a region of space where gravity is so strong that nothing, including light, can escape.”',
+      '“A black hole is a super-strong space neighbor that pulls everything close—even light—but it stays very far away from us.”',
+    ];
+    final styleName = styleNames[styleIndex];
+    final answer = answers[styleIndex];
     return Positioned(
       left: 20,
       top: 409,
@@ -3852,7 +4453,7 @@ class _ArtworkStyleAnswer extends StatelessWidget {
                 answer,
                 style: const TextStyle(
                   fontFamily: 'Nunito',
-                  fontSize: 16,
+                  fontSize: 18,
                   height: 1.35,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF293033),
@@ -4105,12 +4706,15 @@ class _ActivityHeader extends StatelessWidget {
             Expanded(
               child: Column(
                 children: [
-                  const Text(
-                    'AI Course',
-                    style: TextStyle(
-                      fontFamily: 'Fredoka',
-                      fontSize: 19,
-                      fontWeight: FontWeight.w700,
+                  const FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'From Understanding to Building LLMs',
+                      style: TextStyle(
+                        fontFamily: 'Fredoka',
+                        fontSize: 19,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                   Text(

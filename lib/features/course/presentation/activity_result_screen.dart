@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/state/app_state.dart';
+import '../../../core/widgets/equipped_bear_avatar.dart';
 import '../../../domain/content/course_catalog.dart';
 
 class ActivityResultScreen extends ConsumerWidget {
@@ -93,7 +94,7 @@ class _CorrectResult extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            _ResultHeader(name: learnerName, scale: scale),
+                            _ResultHeader(scale: scale),
                             SizedBox(height: 6 * scale),
                             Semantics(
                               label: 'Success animation for ${activity.title}',
@@ -120,43 +121,71 @@ class _CorrectResult extends StatelessWidget {
                             const Spacer(),
                             _ResultRewards(scale: scale),
                             SizedBox(height: 10 * scale),
-                            SizedBox(
-                              height: 46 * scale,
-                              child: ElevatedButton(
-                                onPressed: onContinue,
-                                style: ElevatedButton.styleFrom(
-                                  elevation: 5 * scale,
-                                  shadowColor: const Color(0xFF293033),
-                                  backgroundColor: const Color(0xFFFF9F43),
-                                  foregroundColor: const Color(0xFF6D3A00),
-                                  padding: EdgeInsets.zero,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(
-                                      24 * scale,
-                                    ),
-                                    side: BorderSide(
-                                      color: const Color(0xFF293033),
-                                      width: 2.5 * scale,
+                            TweenAnimationBuilder<double>(
+                              tween: Tween(begin: 0.94, end: 1),
+                              duration: const Duration(milliseconds: 650),
+                              curve: Curves.elasticOut,
+                              builder: (context, pulse, child) =>
+                                  Transform.scale(
+                                    scale: pulse,
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(
+                                          24 * scale,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFFFF9F43)
+                                                .withValues(
+                                                  alpha:
+                                                      (1 - pulse) * 0.8 + 0.18,
+                                                ),
+                                            blurRadius: 16 * (1 - pulse) + 5,
+                                            spreadRadius: 2 * (1 - pulse),
+                                          ),
+                                        ],
+                                      ),
+                                      child: child,
                                     ),
                                   ),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      'Continue',
-                                      style: TextStyle(
-                                        fontFamily: 'Nunito',
-                                        fontSize: 16 * scale,
-                                        fontWeight: FontWeight.w900,
+                              child: SizedBox(
+                                height: 46 * scale,
+                                child: ElevatedButton(
+                                  onPressed: onContinue,
+                                  style: ElevatedButton.styleFrom(
+                                    elevation: 5 * scale,
+                                    shadowColor: const Color(0xFF293033),
+                                    backgroundColor: const Color(0xFFFF9F43),
+                                    foregroundColor: const Color(0xFF6D3A00),
+                                    padding: EdgeInsets.zero,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                        24 * scale,
+                                      ),
+                                      side: BorderSide(
+                                        color: const Color(0xFF293033),
+                                        width: 2.5 * scale,
                                       ),
                                     ),
-                                    SizedBox(width: 8 * scale),
-                                    Icon(
-                                      Icons.arrow_forward_rounded,
-                                      size: 24 * scale,
-                                    ),
-                                  ],
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'Continue',
+                                        style: TextStyle(
+                                          fontFamily: 'Nunito',
+                                          fontSize: 16 * scale,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                      SizedBox(width: 8 * scale),
+                                      Icon(
+                                        Icons.arrow_forward_rounded,
+                                        size: 24 * scale,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -176,9 +205,8 @@ class _CorrectResult extends StatelessWidget {
 }
 
 class _ResultHeader extends StatelessWidget {
-  const _ResultHeader({required this.name, required this.scale});
+  const _ResultHeader({required this.scale});
 
-  final String name;
   final double scale;
 
   @override
@@ -186,34 +214,40 @@ class _ResultHeader extends StatelessWidget {
     height: 64 * scale,
     child: Row(
       children: [
-        SvgPicture.asset(
-          'assets/icons/home/avatar.svg',
-          width: 48 * scale,
-          height: 48 * scale,
-        ),
+        EquippedBearAvatar(size: 48 * scale),
         SizedBox(width: 12 * scale),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                'Hello $name 👋',
-                style: TextStyle(
-                  fontFamily: 'Nunito',
-                  fontSize: 14 * scale,
-                  height: 1.05,
-                  color: const Color(0xFF4B3333),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Hello Guest 👋',
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontFamily: 'BeVietnamPro',
+                    fontSize: 14 * scale,
+                    height: 1.45,
+                    color: const Color(0xFF4B3333),
+                  ),
                 ),
               ),
-              Text(
-                'Good Morning',
-                style: TextStyle(
-                  fontFamily: 'Fredoka',
-                  fontSize: 22 * scale,
-                  height: 1.1,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF4B3333),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Get ready to learn AI!',
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontFamily: 'PlusJakartaSans',
+                    fontSize: 22 * scale,
+                    height: 1.25,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF4B3333),
+                  ),
                 ),
               ),
             ],
@@ -470,8 +504,6 @@ class _RetryResult extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final learnerName = ref.watch(appViewStateProvider).learnerName;
-
     return Scaffold(
       backgroundColor: const Color(0xFFFFFBF2),
       body: SafeArea(
@@ -505,44 +537,12 @@ class _RetryResult extends ConsumerWidget {
                                 filterQuality: FilterQuality.high,
                               ),
                             ),
-                            if (learnerName != 'Max')
-                              Positioned(
-                                left: 77,
-                                top: 16,
-                                width: 115,
-                                height: 21,
-                                child: ColoredBox(
-                                  color: const Color(0xFFFFFBF2),
-                                  child: Text(
-                                    'Hello $learnerName 👋',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontFamily: 'Nunito',
-                                      fontSize: 13,
-                                      height: 1.2,
-                                      color: Color(0xFF4B3333),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            _RetryHitTarget(
-                              label: 'Notifications',
-                              left: 325,
-                              top: 10,
-                              width: 52,
-                              height: 52,
-                              onTap: () {
-                                ScaffoldMessenger.of(context)
-                                  ..hideCurrentSnackBar()
-                                  ..showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'No new notifications in the local prototype.',
-                                      ),
-                                    ),
-                                  );
-                              },
+                            const Positioned(
+                              left: 0,
+                              top: 0,
+                              width: 391,
+                              height: 70,
+                              child: ColoredBox(color: Color(0xFFFFFBF2)),
                             ),
                             _RetryHitTarget(
                               label: 'Try Again',

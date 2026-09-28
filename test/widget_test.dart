@@ -20,6 +20,13 @@ void main() {
     await tester.pumpWidget(harness.wrap(const BearfetchApp()));
     expect(find.bySemanticsLabel("I'm a Parent"), findsOneWidget);
     expect(find.bySemanticsLabel('Sign in'), findsOneWidget);
+    expect(find.text('AI Adventures for\nyoung learners'), findsOneWidget);
+    expect(
+      find.text(
+        "Create a family account, add your\nchild's learner profile, and start\nthe first AI-mission.",
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('parent signup validates details then opens learner profile', (
@@ -111,10 +118,15 @@ void main() {
     GoRouter.of(tester.element(find.byType(Scaffold).first)).go('/home');
     await tester.pumpAndSettle();
     expect(find.text('Meet AI Chatbots'), findsWidgets);
+    expect(find.text('DAILY QUEST'), findsNothing);
+    expect(find.text('Hello Guest 👋'), findsOneWidget);
+    expect(find.text('Get ready to learn AI!'), findsOneWidget);
 
     await tester.tap(find.text('Courses'));
     await tester.pumpAndSettle();
+    expect(find.text('K-12 Friendly'), findsOneWidget);
     expect(find.bySemanticsLabel('Continue Course'), findsOneWidget);
+    expect(find.bySemanticsLabel('View Course Path'), findsNothing);
 
     await tester.tap(find.text('Shop'));
     await tester.pumpAndSettle();

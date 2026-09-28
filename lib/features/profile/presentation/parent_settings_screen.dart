@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -60,12 +58,6 @@ class ParentSettingsScreen extends ConsumerWidget {
           const SizedBox(height: 24),
           const _ProgressInsightCard(),
           const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: () => _exportData(context, ref),
-            icon: const Icon(Icons.download_outlined),
-            label: const Text('Export family data'),
-          ),
-          const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: state.hasPendingDeletion
                 ? () => _cancelDeletion(context, ref)
@@ -114,38 +106,6 @@ class ParentSettingsScreen extends ConsumerWidget {
             },
             icon: const Icon(Icons.logout),
             label: const Text('Sign out'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _exportData(BuildContext context, WidgetRef ref) async {
-    if (!await _confirmFreshOtp(context, ref)) {
-      return;
-    }
-    final data = await ref.read(privacyRepositoryProvider).exportLocalData();
-    if (!context.mounted) return;
-    final export = const JsonEncoder.withIndent('  ').convert(data);
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Family data export'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(child: SelectableText(export)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: export));
-              if (dialogContext.mounted) Navigator.of(dialogContext).pop();
-            },
-            child: const Text('Copy data'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Close'),
           ),
         ],
       ),

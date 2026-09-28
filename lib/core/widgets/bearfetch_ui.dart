@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/bearfetch_theme.dart';
+import 'equipped_bear_avatar.dart';
 
 class BearfetchHeader extends StatelessWidget {
   const BearfetchHeader({
@@ -16,20 +17,7 @@ class BearfetchHeader extends StatelessWidget {
     padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
     child: Row(
       children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFE5BE),
-            border: Border.all(color: const Color(0xFFB9783F), width: 2),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: const Icon(
-            Icons.face_rounded,
-            color: BearfetchColors.brown,
-            size: 32,
-          ),
-        ),
+        const EquippedBearAvatar(size: 48),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
