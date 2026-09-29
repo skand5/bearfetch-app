@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/bearfetch_theme.dart';
@@ -45,6 +46,20 @@ class OnboardingScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              Positioned(
+                left: horizontalOffset + (30 * scale),
+                top: 656 * scale,
+                width: 330 * scale,
+                height: 58 * scale,
+                child: const _FigmaParentButton(),
+              ),
+              Positioned(
+                left: horizontalOffset + (30 * scale),
+                top: 725 * scale,
+                width: 330 * scale,
+                height: 56 * scale,
+                child: const _FigmaSignInButton(),
+              ),
               _DesignButton(
                 semanticLabel: "I'm a Parent",
                 left: horizontalOffset + (30 * scale),
@@ -70,6 +85,95 @@ class OnboardingScreen extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// Visuals from Figma node 1:170. Kept separate from the transparent
+/// [_DesignButton] overlay so native navigation and semantics remain intact.
+class _FigmaParentButton extends StatelessWidget {
+  const _FigmaParentButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8762B),
+        border: Border.all(color: const Color(0xFFC05E1A), width: 2),
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: const [
+          BoxShadow(color: Color(0xFFC05E1A), offset: Offset(0, 4)),
+          BoxShadow(
+            color: Color.fromRGBO(232, 118, 43, 0.28),
+            offset: Offset(0, 6),
+            blurRadius: 18,
+          ),
+        ],
+      ),
+      child: Center(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SvgPicture.asset(
+              'assets/illustrations/onboarding_parent_icon.svg',
+              width: 20,
+              height: 20,
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              "I'm a Parent",
+              style: TextStyle(
+                color: Colors.white,
+                fontFamily: 'Fredoka',
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.1,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Visuals from Figma node 1:177.
+class _FigmaSignInButton extends StatelessWidget {
+  const _FigmaSignInButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF8F0),
+        border: Border.all(color: const Color(0xFFC07040), width: 2),
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: const [
+          BoxShadow(
+            color: Color.fromRGBO(192, 112, 64, 0.35),
+            offset: Offset(0, 3),
+          ),
+          BoxShadow(
+            color: Color.fromRGBO(92, 51, 23, 0.08),
+            offset: Offset(0, 4),
+            blurRadius: 12,
+          ),
+        ],
+      ),
+      child: const Center(
+        child: Text(
+          'Sign in',
+          style: TextStyle(
+            color: Color(0xFF5C3317),
+            fontFamily: 'Fredoka',
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.1,
+            height: 1.5,
+          ),
+        ),
       ),
     );
   }

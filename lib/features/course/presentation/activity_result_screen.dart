@@ -36,7 +36,8 @@ class ActivityResultScreen extends ConsumerWidget {
         final next = activity.nextId;
         if (context.mounted) {
           final chatbotTypeQuery =
-              activityId == 'unit-04-05' && chatbotTypeIndex != null
+              (activityId == 'unit-04-05' || activityId == 'unit-04-06') &&
+                  chatbotTypeIndex != null
               ? '?chatbotType=$chatbotTypeIndex'
               : '';
           context.go(
@@ -101,8 +102,11 @@ class _CorrectResult extends StatelessWidget {
                               image: true,
                               child: SizedBox(
                                 height: 308 * scale,
-                                child: CustomPaint(
-                                  painter: _GifPlaceholderPainter(scale: scale),
+                                child: Image.asset(
+                                  'assets/illustrations/activity_success_great_work.png',
+                                  fit: BoxFit.cover,
+                                  filterQuality: FilterQuality.high,
+                                  excludeFromSemantics: true,
                                 ),
                               ),
                             ),
@@ -308,59 +312,6 @@ class _ResultHeader extends StatelessWidget {
       ],
     ),
   );
-}
-
-class _GifPlaceholderPainter extends CustomPainter {
-  const _GifPlaceholderPainter({required this.scale});
-
-  final double scale;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rrect = RRect.fromRectAndRadius(
-      Offset.zero & size,
-      Radius.circular(24 * scale),
-    );
-    canvas.drawRRect(rrect, Paint()..color = const Color(0xFFDDDDDD));
-    canvas.save();
-    canvas.clipRRect(rrect);
-    final cross = Paint()
-      ..color = const Color(0xFF9E9E9E)
-      ..strokeWidth = 2.5 * scale;
-    canvas.drawLine(Offset.zero, Offset(size.width, size.height), cross);
-    canvas.drawLine(Offset(size.width, 0), Offset(0, size.height), cross);
-    canvas.restore();
-    canvas.drawRRect(
-      rrect,
-      Paint()
-        ..color = Colors.black
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3 * scale,
-    );
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: 'Gif',
-        style: TextStyle(
-          color: Colors.black,
-          fontFamily: 'PlusJakartaSans',
-          fontSize: 96 * scale,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    textPainter.paint(
-      canvas,
-      Offset(
-        (size.width - textPainter.width) / 2,
-        (size.height - textPainter.height) / 2,
-      ),
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _GifPlaceholderPainter oldDelegate) =>
-      scale != oldDelegate.scale;
 }
 
 class _ResultSection extends StatelessWidget {

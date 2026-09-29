@@ -126,39 +126,14 @@ class ProfileScreen extends ConsumerWidget {
                         offset: const Offset(0, 15),
                         child: _ProfileProgressOverlay(state: state),
                       ),
-                      // The baked-in profile.png art still reads
-                      // "Notifications" for this row; this label patch
-                      // overlays the correct "Parent settings" copy so the
-                      // visible text matches where the row actually
-                      // navigates. Purely cosmetic — it sits above the
-                      // Image and below the transparent hit target below.
+                      // Figma node 1:3116 replaces legacy Notifications row.
+                      // Visual sits below profile art, above native hit target.
                       const Positioned(
-                        left: 34,
-                        top: 1112,
-                        width: 300,
-                        height: 30,
-                        child: ColoredBox(
-                          color: Color(0xFFFBF9F1),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.manage_accounts_rounded,
-                                size: 20,
-                                color: Color(0xFF293033),
-                              ),
-                              SizedBox(width: 10),
-                              Text(
-                                'Parent Settings',
-                                style: TextStyle(
-                                  fontFamily: 'Nunito',
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF293033),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        left: 23,
+                        top: 1103,
+                        width: 344,
+                        height: 54,
+                        child: _FigmaParentSettingsRow(),
                       ),
                       Positioned(
                         left: 334,
@@ -227,6 +202,53 @@ class ProfileScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Exact visual treatment from Figma node 1:3116.
+class _FigmaParentSettingsRow extends StatelessWidget {
+  const _FigmaParentSettingsRow();
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: const BoxDecoration(
+      color: Color(0xFFFBF9F1),
+      border: Border(top: BorderSide(color: Color(0xFF2D3436), width: 2)),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              SvgPicture.asset(
+                'assets/icons/figma_parent_control.svg',
+                width: 16,
+                height: 20,
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Parent Settings',
+                style: TextStyle(
+                  color: Color(0xFF2D3436),
+                  fontFamily: 'Fredoka',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.7,
+                  height: 20 / 14,
+                ),
+              ),
+            ],
+          ),
+          SvgPicture.asset(
+            'assets/icons/figma_parent_settings_chevron.svg',
+            width: 7.4,
+            height: 12,
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _ProfileHeaderOverlay extends StatelessWidget {

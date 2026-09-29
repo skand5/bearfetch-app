@@ -414,6 +414,33 @@ void main() {
     );
   });
 
+  testWidgets('bot test output uses the selected chatbot type', (tester) async {
+    await tester.pumpWidget(
+      harness.wrap(
+        const MaterialApp(
+          home: CourseActivityScreen(
+            activityId: 'unit-04-07',
+            chatbotTypeIndex: 0,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+
+    final tryExamplePrompt = find.bySemanticsLabel('Try Example Prompt').last;
+    await tester.ensureVisible(tryExamplePrompt);
+    await tester.tap(tryExamplePrompt);
+    await tester.pump();
+
+    expect(find.text('What is 7 × 8?'), findsOneWidget);
+    expect(
+      find.text('7 × 8 = 56. You can think of it as 7 groups of 8.'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('bot test reveals its response before enabling Yes or No', (
     tester,
   ) async {
@@ -423,11 +450,15 @@ void main() {
       ),
     );
     await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
 
     expect(find.bySemanticsLabel('Yes, it helped'), findsNothing);
     expect(find.bySemanticsLabel('Not yet'), findsNothing);
 
-    await tester.tap(find.bySemanticsLabel('Try Example Prompt').last);
+    final tryExamplePrompt = find.bySemanticsLabel('Try Example Prompt').last;
+    await tester.ensureVisible(tryExamplePrompt);
+    await tester.tap(tryExamplePrompt);
     await tester.pump();
 
     expect(

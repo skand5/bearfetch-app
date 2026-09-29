@@ -34,7 +34,6 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
   int? _activeChatQuestion;
   int? _activeStyleIndex;
   bool _botTestPromptTried = false;
-  double _botTestLoadProgress = 0;
   bool _botTestLoaded = false;
 
   content.ActivityDefinition get activity =>
@@ -78,27 +77,14 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
     _activeChatQuestion = null;
     _activeStyleIndex = null;
     _botTestPromptTried = false;
-    _botTestLoadProgress = 0;
     _botTestLoaded = false;
   }
 
   void _startBotTestLoading() {
     _botTestLoadingTimer?.cancel();
     if (widget.activityId != 'unit-04-07') return;
-    _botTestLoadingTimer = Timer.periodic(const Duration(milliseconds: 100), (
-      timer,
-    ) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      setState(() {
-        _botTestLoadProgress = (_botTestLoadProgress + 0.08).clamp(0.0, 1.0);
-        if (_botTestLoadProgress >= 1) {
-          _botTestLoaded = true;
-          timer.cancel();
-        }
-      });
+    _botTestLoadingTimer = Timer(const Duration(seconds: 1), () {
+      if (mounted) setState(() => _botTestLoaded = true);
     });
   }
 
@@ -809,6 +795,16 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                       ? null
                       : choices[groupSelections[group]!].$1,
                 ),
+              // The artwork's first option includes a static orange selected
+              // outline. Mask it before drawing the live option so all three
+              // initial choices share the same neutral button treatment.
+              const Positioned(
+                left: 42,
+                top: 393,
+                width: 78,
+                height: 42,
+                child: ColoredBox(color: Color(0xFFA0D2EB)),
+              ),
               for (var index = 0; index < choices.length; index++)
                 _ArtworkPredictionChoice(
                   left: choices[index].$2,
@@ -816,7 +812,6 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
                   width: choices[index].$4,
                   label: choices[index].$1,
                   selected: groupSelections[index ~/ 3] == index,
-                  coverBakedOutline: index == 0,
                   height: index < 3 ? 38 : 34,
                 ),
               for (var index = 0; index < choices.length; index++)
@@ -1103,6 +1098,7 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
             semanticLabel: a.title,
             assetPath: 'assets/illustrations/unit_03_02.png',
             assetHeight: 1195,
+            overlays: const [_Step17BackButtonOverlay()],
             // The Figma export has an opaque black tail below the final action
             // row. It is outside the designed screen content, so retain the
             // artwork but restore the intended page background in that tail.
@@ -1928,9 +1924,9 @@ class _CourseActivityScreenState extends ConsumerState<CourseActivityScreen> {
               _ArtworkBotTestOutput(
                 ready: _botTestLoaded,
                 promptTried: _botTestPromptTried,
+                botIndex: widget.chatbotTypeIndex ?? 2,
               ),
-              if (!_botTestLoaded)
-                _ArtworkBotTestLoading(progress: _botTestLoadProgress),
+              if (!_botTestLoaded) const _ArtworkBotTestLoading(),
               if (_botTestPromptTried)
                 _ArtworkBotTestSelection(
                   selectYes: selectedResponse == null
@@ -2241,6 +2237,46 @@ class _ActivityArtwork extends StatelessWidget {
   );
 }
 
+/// The Step 17 exported artwork clips its back-control circle at y=0.
+/// Mask only that broken fragment and draw a complete control in its place.
+class _Step17BackButtonOverlay extends StatelessWidget {
+  const _Step17BackButtonOverlay();
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    children: [
+      const Positioned(
+        left: 12,
+        top: 0,
+        width: 56,
+        height: 42,
+        child: ColoredBox(color: Color(0xFFFFF8EF)),
+      ),
+      Positioned(
+        left: 20,
+        // Match other activity headers: circle ends at y=40, leaving 6px
+        // before the fixed progress bar at y=46.
+        top: 0,
+        width: 40,
+        height: 40,
+        child: IgnorePointer(
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              color: Color(0xFFE9E9E4),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.arrow_back_rounded,
+              size: 26,
+              color: Color(0xFF293033),
+            ),
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
 class _ArtworkCourseTitle extends StatelessWidget {
   const _ArtworkCourseTitle({required this.assetPath});
 
@@ -2265,7 +2301,12 @@ class _ArtworkCourseTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final titleTop = (_progressTop - 48).clamp(0.0, 25.0);
+    // Step 17 artwork has a shorter header. Its title began at y=0 and its
+    // bold glyphs clipped against the top edge. Reserve a 4px top inset only
+    // for that header; unit copy still ends inside its 45px title region.
+    final titleTop = assetPath.endsWith('unit_03_02.png')
+        ? 4.0
+        : (_progressTop - 48).clamp(0.0, 25.0);
     final unitTop = titleTop + 26;
     return Positioned(
       left: 82,
@@ -2286,8 +2327,8 @@ class _ArtworkCourseTitle extends StatelessWidget {
                   'From Understanding to Building LLMs',
                   style: const TextStyle(
                     fontFamily: 'BeVietnamPro',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
                     color: Color(0xFF293033),
                   ),
                 ),
@@ -3226,7 +3267,6 @@ class _ArtworkPredictionChoice extends StatelessWidget {
     required this.width,
     required this.label,
     required this.selected,
-    this.coverBakedOutline = false,
     this.height = 38,
   });
 
@@ -3235,7 +3275,6 @@ class _ArtworkPredictionChoice extends StatelessWidget {
   final double width;
   final String label;
   final bool selected;
-  final bool coverBakedOutline;
   final double height;
 
   @override
@@ -3251,8 +3290,6 @@ class _ArtworkPredictionChoice extends StatelessWidget {
           color: selected ? const Color(0xFFD5D5D5) : const Color(0xFFFFFDF8),
           border: selected
               ? Border.all(color: const Color(0xFFD5B98A), width: 2)
-              : coverBakedOutline
-              ? Border.all(color: const Color(0xFFFFFDF8), width: 2)
               : null,
           borderRadius: BorderRadius.circular(13),
         ),
@@ -3394,10 +3431,15 @@ class _ArtworkMemoryReplyCard extends StatelessWidget {
 }
 
 class _ArtworkBotTestOutput extends StatelessWidget {
-  const _ArtworkBotTestOutput({required this.ready, required this.promptTried});
+  const _ArtworkBotTestOutput({
+    required this.ready,
+    required this.promptTried,
+    required this.botIndex,
+  });
 
   final bool ready;
   final bool promptTried;
+  final int botIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -3410,7 +3452,9 @@ class _ArtworkBotTestOutput extends StatelessWidget {
         child: IgnorePointer(child: ColoredBox(color: Color(0xFFFFF8EF))),
       );
     }
-    if (promptTried) return const SizedBox.shrink();
+    if (promptTried) {
+      return _ArtworkBotTestExampleOverlay(botIndex: botIndex);
+    }
 
     // The exported artwork is the expanded, post-prompt state. Cover it with
     // the compact Figma default state until the learner taps the prompt.
@@ -3515,29 +3559,149 @@ class _ArtworkBotTestOutput extends StatelessWidget {
   }
 }
 
-class _ArtworkBotTestLoading extends StatelessWidget {
-  const _ArtworkBotTestLoading({required this.progress});
+class _ArtworkBotTestExampleOverlay extends StatelessWidget {
+  const _ArtworkBotTestExampleOverlay({required this.botIndex});
 
-  final double progress;
+  final int botIndex;
+
+  static const _examples = [
+    (
+      prompt: 'What is 7 × 8?',
+      response: '7 × 8 = 56. You can think of it as 7 groups of 8.',
+    ),
+    (
+      prompt: 'Tell me a fun fact about space.',
+      response:
+          'A day on Venus is longer than a year on Venus. That is a very slow spin!',
+    ),
+    (
+      prompt: 'How can I study for a science test?',
+      response:
+          'Start with the topics you find hardest. Review one topic at a time, make short notes, and take a quick break after 20 minutes.',
+    ),
+    (
+      prompt: 'What can you help me with?',
+      response:
+          'I can answer questions, explain ideas, and help you find a useful next step.',
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final index = botIndex >= 0 && botIndex < _examples.length ? botIndex : 2;
+    final example = _examples[index];
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Stack(
+          children: [
+            Positioned(
+              left: 46,
+              top: 571,
+              width: 298,
+              height: 75,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(13, 11, 13, 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(
+                    color: const Color(0xFFDAB2A1),
+                    width: 1.2,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  example.prompt,
+                  maxLines: 2,
+                  style: const TextStyle(
+                    fontFamily: 'Nunito',
+                    fontSize: 16,
+                    height: 1.35,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF293033),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 42,
+              top: 694,
+              width: 306,
+              height: 139,
+              child: const ColoredBox(color: Color(0xFFF4F2EA)),
+            ),
+            Positioned(
+              left: 46,
+              top: 698,
+              width: 298,
+              height: 131,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFD1BA),
+                  border: Border.all(color: const Color(0xFF293033), width: 2),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  example.response,
+                  maxLines: 4,
+                  overflow: TextOverflow.clip,
+                  style: const TextStyle(
+                    fontFamily: 'Nunito',
+                    fontSize: 16,
+                    height: 1.35,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF293033),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ArtworkBotTestLoading extends StatelessWidget {
+  const _ArtworkBotTestLoading();
 
   @override
   Widget build(BuildContext context) => Positioned(
-    left: 256,
-    top: 389,
-    width: 95,
-    height: 8,
+    left: 89,
+    top: 375,
+    width: 262,
+    height: 30,
     child: IgnorePointer(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(4),
-        child: DecoratedBox(
-          decoration: const BoxDecoration(color: Color(0xFF8FE2CA)),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: FractionallySizedBox(
-              widthFactor: progress,
-              child: const ColoredBox(color: Color(0xFF00796B)),
+      child: ColoredBox(
+        color: const Color(0xFFA0D2EB),
+        child: Stack(
+          children: [
+            const Positioned(
+              left: 1,
+              top: 1,
+              child: Text(
+                'In-Progress',
+                style: TextStyle(
+                  fontFamily: 'Nunito',
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF293033),
+                ),
+              ),
             ),
-          ),
+            const Positioned(
+              right: 9,
+              top: 4,
+              width: 22,
+              height: 22,
+              child: RepaintBoundary(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: Color(0xFF00796B),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     ),
