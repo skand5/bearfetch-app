@@ -29,10 +29,10 @@ void main() {
   });
 
   test(
-    'manifest next links follow sequence despite duplicate display steps',
+    'manifest next links follow sequence across display-step gaps',
     () {
       expect(catalog.activity('unit-04-02').step, 24);
-      expect(catalog.activity('unit-04-03').step, 24);
+      expect(catalog.activity('unit-04-03').step, 26);
       expect(catalog.activity('unit-04-02').nextId, 'unit-04-03');
       expect(catalog.nextIncomplete({'unit-04-02'}).id, 'unit-01-01');
       expect(

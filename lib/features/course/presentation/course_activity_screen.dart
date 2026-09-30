@@ -4613,14 +4613,23 @@ class _ArtworkStyleAnswer extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              Text(
-                answer,
-                style: const TextStyle(
-                  fontFamily: 'Nunito',
-                  fontSize: 18,
-                  height: 1.35,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF293033),
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.topLeft,
+                  child: SizedBox(
+                    width: 294,
+                    child: Text(
+                      answer,
+                      style: const TextStyle(
+                        fontFamily: 'Nunito',
+                        fontSize: 16,
+                        height: 1.35,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF293033),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],

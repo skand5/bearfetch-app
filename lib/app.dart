@@ -25,6 +25,7 @@ class BearfetchApp extends ConsumerWidget {
     return SyncTriggers(
       child: MaterialApp.router(
         title: 'BearFetch',
+        debugShowCheckedModeBanner: false,
         theme: BearfetchTheme.materialTheme(),
         routerConfig: ref.watch(appRouterProvider),
         builder: (context, child) => syncWarning == null

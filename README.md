@@ -1,19 +1,27 @@
 # BearFetch
 
-Offline-first Flutter learning app for children. Course content and chatbot-building activities are scripted assets; application contains no AI/chatbot runtime.
+Offline-first Flutter learning app for young learners. Interactive courses teach
+AI and chatbot concepts through scripted activities, rewards, bot-building, and
+parent controls. No AI/chatbot runtime or model API ships in app.
 
-Start continuation work with [docs/HANDOFF.md](docs/HANDOFF.md). It records
-current worktree state, product boundaries, verification commands, secrets, and
-next work.
+## Hackathon
 
-## Toolchain
+Shipaton 2026 Next Gen submission material:
+
+- [Submission checklist](docs/HACKATHON.md)
+- [Setup and configuration](docs/SETUP.md)
+- [Security policy](SECURITY.md)
+- [MIT license](LICENSE)
+
+## Stack
 
 - Flutter `3.41.4` / Dart `3.11.1`
 - Java `17`
 - Android compile SDK `37`
-- Full Xcode installation for iOS builds
+- Supabase Auth/data sync
+- RevenueCat parent-only lifetime entitlement
 
-## Local run
+## Run locally
 
 ```bash
 cp config/development.example.json config/development.json
@@ -21,7 +29,24 @@ flutter pub get
 flutter run --flavor development --dart-define-from-file=config/development.json
 ```
 
-Development build may run without backend credentials until Supabase integration lands. Production builds fail at startup unless every required public value is supplied.
+Never commit `config/development.json`, `config/production.json`, keystores,
+service-role keys, SMTP/Resend credentials, RevenueCat secret keys, or child
+data. Dart defines become part of app binary.
 
-See [docs/SETUP.md](docs/SETUP.md) for local signing, environment, Supabase,
-Resend, Sentry, validation, and release setup.
+## RevenueCat demo
+
+Parent Settings contains Progress insight lifetime purchase. Development Test
+Store config uses local-only `REVENUECAT_TEST_STORE_API_KEY`. It must stay out
+of Git and production builds.
+
+Run before pull request:
+
+```bash
+dart format --output=none --set-exit-if-changed lib test
+flutter analyze
+flutter test
+```
+
+See [docs/SETUP.md](docs/SETUP.md) for signing, production values, Supabase,
+RevenueCat, Sentry, and release setup. See [docs/HANDOFF.md](docs/HANDOFF.md)
+for current scope and known deferred work.

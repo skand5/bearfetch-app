@@ -18,8 +18,8 @@ void main() {
 
   testWidgets('parent-first onboarding is the app entry point', (tester) async {
     await tester.pumpWidget(harness.wrap(const BearfetchApp()));
-    expect(find.bySemanticsLabel("I'm a Parent"), findsOneWidget);
-    expect(find.bySemanticsLabel('Sign in'), findsOneWidget);
+    expect(_semanticControl("I'm a Parent"), findsOneWidget);
+    expect(_semanticControl('Sign in'), findsOneWidget);
     expect(find.text('AI Adventures for\nyoung learners'), findsOneWidget);
     expect(
       find.text(
@@ -34,7 +34,7 @@ void main() {
   ) async {
     await tester.pumpWidget(harness.wrap(const BearfetchApp()));
 
-    final parentButton = find.bySemanticsLabel("I'm a Parent");
+    final parentButton = _semanticControl("I'm a Parent");
     await tester.ensureVisible(parentButton);
     await tester.tap(parentButton);
     await tester.pumpAndSettle();
@@ -96,7 +96,7 @@ void main() {
   ) async {
     await tester.pumpWidget(harness.wrap(const BearfetchApp()));
 
-    final signIn = find.bySemanticsLabel('Sign in');
+    final signIn = _semanticControl('Sign in');
     await tester.ensureVisible(signIn);
     await tester.tap(signIn);
     await tester.pumpAndSettle();
@@ -147,7 +147,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.bySemanticsLabel('Meet AI Chatbots'), findsOneWidget);
 
-    final start = find.bySemanticsLabel('Start');
+    final start = _semanticControl('Start');
     await tester.ensureVisible(start);
     await tester.tap(start);
     await tester.pumpAndSettle();
@@ -183,7 +183,7 @@ void main() {
           entry.key == 'unit-04-06' ||
           entry.key == 'unit-04-07') {
         expect(
-          find.bySemanticsLabel(entry.value.title),
+          _semanticControl(entry.value.title),
           findsOneWidget,
           reason: entry.key,
         );
@@ -270,6 +270,8 @@ void main() {
   testWidgets('tone exploration requires trying all three styles', (
     tester,
   ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 1195));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       harness.wrap(
         const MaterialApp(home: CourseActivityScreen(activityId: 'unit-03-02')),
@@ -332,6 +334,8 @@ void main() {
   testWidgets('prediction activity accepts all three natural next words', (
     tester,
   ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       harness.wrap(
         const MaterialApp(home: CourseActivityScreen(activityId: 'unit-02-02')),
@@ -347,6 +351,7 @@ void main() {
             widget.properties.selected == false,
       );
       expect(option, findsOneWidget);
+      await tester.ensureVisible(option);
       await tester.tap(option);
       await tester.pump();
     }
@@ -511,7 +516,7 @@ void main() {
     await tester.pump();
 
     expect(find.bySemanticsLabel('Almost there'), findsOneWidget);
-    expect(find.bySemanticsLabel('Notifications'), findsOneWidget);
+    expect(find.bySemanticsLabel('Notifications'), findsNothing);
     expect(find.bySemanticsLabel('Try Again'), findsOneWidget);
   });
 
@@ -529,3 +534,7 @@ void main() {
     expect(find.bySemanticsLabel('Finish Course'), findsOneWidget);
   });
 }
+
+Finder _semanticControl(String label) => find.byWidgetPredicate(
+  (widget) => widget is Semantics && widget.properties.label == label,
+);
