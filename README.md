@@ -1,8 +1,6 @@
 # BearFetch
 
-Offline-first Flutter learning app for young learners. Interactive courses teach
-AI and chatbot concepts through scripted activities, rewards, bot-building, and
-parent controls. No AI/chatbot runtime or model API ships in app.
+BearFetch is a gamified AI learning app for K–12 students that turns AI literacy into an interactive, hands-on experience. Its first course, From Understanding to Building LLMs, uses activities covering AI chatbots, tokens, prediction, prompting, and chatbot building, with XP, badges, certificates, and Honey Jars rewarding progress. BearFetch also includes a parent experience with Progress Insight, connecting student learning progress with parent visibility.
 
 ## Hackathon
 
